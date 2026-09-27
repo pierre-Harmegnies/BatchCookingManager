@@ -390,6 +390,34 @@ tbody tr:hover { background: color-mix(in srgb, var(--h-teal) 5%, transparent); 
 
 #selection-count { color: var(--muted); font-size: 0.88rem; }
 
+.save-session-group {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-left: 0.5rem;
+}
+.save-session-group input { width: 220px; margin: 0; display: inline-block; }
+#save-session-status { color: var(--cuisine-600); font-weight: 600; font-size: 0.85rem; }
+
+.session-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  background: color-mix(in srgb, var(--h-violet) 5%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--h-violet) 20%, var(--border));
+  border-radius: 0.8rem;
+  padding: 0.8rem 1rem;
+  margin-bottom: 0.6rem;
+}
+.session-card-info { display: flex; flex-direction: column; gap: 0.15rem; }
+.session-card-info strong { color: var(--fg); }
+.session-card-info span { color: var(--muted); font-size: 0.85rem; }
+.session-card button { flex-shrink: 0; }
+
+#session-detail-section { margin-top: 1.5rem; }
+#session-detail-section .actions { display: flex; gap: 0.6rem; margin: 0.8rem 0; }
+
 .page-footer {
   text-align: center;
   color: var(--muted-light);

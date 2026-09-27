@@ -16,9 +16,10 @@ Logique de dépendances (`computeSubStepWaves` dans `src/macuisine/toDomain.ts`)
 
 ## Pages
 
-Deux pages, avec une petite nav commune (façon MaCuisine) :
-- `/` (`index.html` + `planning.js`) — planification : charger un menu, choisir les recettes, générer le planning, écran de complétion.
+Trois pages, avec une petite nav commune (façon MaCuisine) :
+- `/` (`index.html` + `planning.js`) — planification : charger un menu, choisir les recettes, générer le planning, écran de complétion, bouton "Sauvegarder cette session".
 - `/recettes` (`recettes.html` + `review.js`) — revoir/corriger la configuration d'ordonnancement de n'importe quelle recette, indépendamment de toute sélection pour un planning (`GET /api/recipes/:slug/metadata`).
+- `/historique` (`historique.html` + `historique.js`) — sessions de batch cooking sauvegardées (voir section dédiée ci-dessous).
 
 Le code commun (thème clair/sombre, couleurs par recette/équipement, et la carte d'édition d'étape `createStepEditorCard`) est factorisé dans `public/shared.js` (module ES, `import`/`export`), consommé par les deux pages. Pré-remplissage automatique des champs quand une configuration existe déjà.
 
@@ -27,6 +28,12 @@ Le code commun (thème clair/sombre, couleurs par recette/équipement, et la car
 Alignée sur MaCuisine (`frontend/tailwind.config.js`, `Layout.tsx`, `RecipeCard.tsx`) : police Inter, fond stone-200, accent orange "cuisine" (#ee7b12), cartes blanches arrondies, icônes SVG inline façon lucide-react (pas d'emoji), pastilles de catégorie douces. La palette recette/équipement (web + PDF) reprend les teintes sky/amber/rose/teal/violet de MaCuisine.
 
 Bouton "💡 Suggestion IA pour toute la recette" : un seul appel IA groupé (`POST /api/recipes/:slug/suggest-all`, `suggestStepMetadataBatch`) pré-remplit toutes les étapes d'un coup, au lieu d'un appel par étape — même garantie que la suggestion individuelle (jamais appliqué automatiquement, chaque étape doit être vérifiée puis enregistrée séparément). Modèle utilisé pour toute suggestion IA (individuelle ou groupée) : **`claude-haiku-4-5-20251001`** plutôt que Sonnet — tâche d'extraction structurée simple, Haiku est nettement moins cher et suffisant vu que le résultat est toujours revalidé manuellement.
+
+## Sauvegarder une session de batch cooking
+
+Bouton "Sauvegarder cette session" sous le planning généré (page `/`) : `POST /api/sessions` recalcule le planning puis en fait un **instantané persistant** (recettes + planning complet) dans la collection Mongo `sessions` (base `batch_cooking`) — `src/store/sessionStore.ts`. Une session sauvegardée reste inchangée même si les métadonnées d'ordonnancement des recettes sont modifiées ensuite : c'est un vrai historique, pas un recalcul à la volée.
+
+Page `/historique` : liste des sessions (nom, date, recettes, durée totale), triées de la plus récente à la plus ancienne. "Voir" affiche le planning complet (même rendu que la page de planification, factorisé dans `renderScheduleTable`, `public/shared.js`), avec téléchargement PDF direct depuis la session sauvegardée (`GET /api/sessions/:id/pdf`, pas de recalcul) et suppression (`DELETE /api/sessions/:id`).
 
 ## Menus MaCuisine
 

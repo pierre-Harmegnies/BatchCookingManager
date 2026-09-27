@@ -71,6 +71,39 @@ export function formatMinutes(minutes) {
   return `${h}h${String(m).padStart(2, "0")}`;
 }
 
+/** Rend le tableau chronologique d'un planning (utilisé par planning.js et historique.js). */
+export function renderScheduleTable(schedule, tbodyEl, makespanEl) {
+  tbodyEl.innerHTML = "";
+  for (const step of schedule.steps) {
+    const tr = document.createElement("tr");
+
+    const recipeTd = document.createElement("td");
+    recipeTd.className = "recipe-name";
+    recipeTd.style.setProperty("--recipe-color", `var(${colorVarForKey(step.recipeTitle)})`);
+    recipeTd.textContent = step.recipeTitle;
+
+    const equipmentTd = document.createElement("td");
+    for (const id of step.equipmentIds) {
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.style.setProperty("--tag-color", `var(${colorVarForKey(id)})`);
+      tag.textContent = id;
+      equipmentTd.append(tag);
+    }
+
+    const startTd = document.createElement("td");
+    startTd.textContent = formatMinutes(step.startMinutes);
+    const endTd = document.createElement("td");
+    endTd.textContent = formatMinutes(step.endMinutes);
+    const descTd = document.createElement("td");
+    descTd.textContent = step.description;
+
+    tr.append(startTd, endTd, recipeTd, descTd, equipmentTd);
+    tbodyEl.append(tr);
+  }
+  if (makespanEl) makespanEl.textContent = `⏱ Temps total : ${formatMinutes(schedule.makespanMinutes)}`;
+}
+
 export async function fetchEquipmentList() {
   const res = await fetch("/api/equipment");
   return res.json();

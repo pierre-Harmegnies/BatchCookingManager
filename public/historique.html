@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <title>Recettes — BatchCookingManager</title>
+  <title>Historique — BatchCookingManager</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -20,18 +20,18 @@
       </div>
       <div class="header-title">
         <h1>BatchCookingManager</h1>
-        <p>Consulte ou corrige la configuration d'ordonnancement de tes recettes.</p>
+        <p>Retrouve tes sessions de batch cooking sauvegardées.</p>
       </div>
       <nav class="main-nav">
         <a href="/">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M16 2v4" /><path d="M8 2v4" /><path d="M3 10h18" /></svg>
           Planifier
         </a>
-        <a href="/recettes" class="active">
+        <a href="/recettes">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14" /><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" /></svg>
           Recettes
         </a>
-        <a href="/historique">
+        <a href="/historique" class="active">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l4 2" /></svg>
           Historique
         </a>
@@ -41,27 +41,39 @@
   </header>
 
   <main>
-    <section id="recipe-review">
+    <section id="session-list-section">
       <h2>
         <span class="section-icon">
-          <!-- BookOpen -->
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14" /><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" /></svg>
+          <!-- History -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l4 2" /></svg>
         </span>
-        Revoir une recette
+        Sessions sauvegardées
       </h2>
-      <p class="hint">Choisis une recette pour consulter ou corriger sa configuration d'ordonnancement (durée, équipement, sous-étapes) — indépendamment de toute sélection pour un planning.</p>
-      <input type="search" id="review-recipe-search" placeholder="Rechercher une recette..." />
-      <ul id="review-recipe-list" class="button-list"></ul>
+      <p class="hint">Un planning sauvegardé reste inchangé même si tu modifies ensuite la configuration des recettes — c'est un instantané.</p>
+      <div id="session-list"></div>
+    </section>
 
-      <div id="review-recipe-detail" hidden>
-        <h3 id="review-recipe-title"></h3>
-        <button type="button" id="suggest-all-btn" class="secondary">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" /></svg>
-          Suggestion IA pour toute la recette
+    <section id="session-detail-section" hidden>
+      <h2 id="session-detail-title"></h2>
+      <p id="session-detail-makespan"></p>
+      <div class="actions">
+        <a id="session-pdf-link" href="#" download>
+          <button type="button">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /></svg>
+            Télécharger en PDF
+          </button>
+        </a>
+        <button type="button" id="session-delete-btn" class="secondary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+          Supprimer cette session
         </button>
-        <p id="suggest-all-status" class="hint"></p>
-        <div id="review-steps-list"></div>
       </div>
+      <table id="session-schedule-table">
+        <thead>
+          <tr><th>Début</th><th>Fin</th><th>Recette</th><th>Étape</th><th>Équipement</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </section>
   </main>
 
@@ -69,6 +81,6 @@
     <p>BatchCookingManager — pas-à-pas de préparation pour le batch cooking, connecté à MaCuisine</p>
   </footer>
 
-  <script type="module" src="/review.js"></script>
+  <script type="module" src="/historique.js"></script>
 </body>
 </html>

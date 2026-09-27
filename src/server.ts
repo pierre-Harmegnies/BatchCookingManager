@@ -9,6 +9,7 @@ import { toDomainRecipe, type MissingStep } from "./macuisine/toDomain.js";
 import { suggestStepMetadata, suggestStepMetadataBatch } from "./ai/suggestStepMetadata.js";
 import { listEquipment } from "./store/equipmentStore.js";
 import { getStepMetadata, upsertStepMetadata } from "./store/stepMetadataStore.js";
+import { createSession, listSessions, getSession, deleteSession } from "./store/sessionStore.js";
 import { generatePlanningPdf } from "./pdf/planningPdf.js";
 import type { Schedule } from "./types.js";
 
@@ -49,6 +50,10 @@ app.use(express.static(path.join(__dirname, "..", "public")));
 
 app.get("/recettes", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "recettes.html"));
+});
+
+app.get("/historique", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "public", "historique.html"));
 });
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
@@ -195,6 +200,70 @@ app.post("/api/step-metadata", async (req, res) => {
     return res.status(400).json({ error: "Champs requis: durationMinutes, equipmentIds[] (ou subSteps[])." });
   }
   await upsertStepMetadata(stepId, recipeSlug, { durationMinutes, equipmentIds, dependsOn });
+  res.status(204).end();
+});
+
+/**
+ * Sauvegarde d'une session de batch cooking : recalcule le planning (comme
+ * /api/planning) puis en fait un snapshot persistant (recettes + planning),
+ * pour constituer un historique consultable sans tout recalculer — stable
+ * même si les métadonnées d'ordonnancement des recettes changent ensuite.
+ */
+app.post("/api/sessions", async (req, res) => {
+  const { slugs, name } = req.body ?? {};
+  if (!Array.isArray(slugs) || slugs.length === 0) {
+    return res.status(400).json({ error: "Champ requis : slugs[] (recettes de la session)." });
+  }
+  if (slugs.length > 4) {
+    return res.status(400).json({ error: "Maximum 4 menus par semaine." });
+  }
+
+  try {
+    const { schedule, missingSteps, recipeTitles } = await buildPlanning(slugs);
+    if (!schedule) {
+      return res.status(409).json({
+        error: "Certaines étapes n'ont pas encore de métadonnées d'ordonnancement.",
+        missingSteps,
+      });
+    }
+
+    const sessionName = typeof name === "string" && name.trim() ? name.trim() : new Date().toLocaleDateString("fr-FR");
+    const session = await createSession({ name: sessionName, recipeSlugs: slugs, recipeTitles, schedule });
+    res.status(201).json(session);
+  } catch (err) {
+    res.status(502).json({ error: (err as Error).message });
+  }
+});
+
+app.get("/api/sessions", async (_req, res) => {
+  const sessions = await listSessions();
+  res.json(sessions);
+});
+
+app.get("/api/sessions/:id", async (req, res) => {
+  const session = await getSession(req.params.id);
+  if (!session) {
+    return res.status(404).json({ error: "Session introuvable." });
+  }
+  res.json(session);
+});
+
+app.get("/api/sessions/:id/pdf", async (req, res) => {
+  const session = await getSession(req.params.id);
+  if (!session) {
+    return res.status(404).json({ error: "Session introuvable." });
+  }
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="planning-${req.params.id}.pdf"`);
+  const doc = generatePlanningPdf(session.schedule, session.recipeTitles);
+  doc.pipe(res);
+});
+
+app.delete("/api/sessions/:id", async (req, res) => {
+  const deleted = await deleteSession(req.params.id);
+  if (!deleted) {
+    return res.status(404).json({ error: "Session introuvable." });
+  }
   res.status(204).end();
 });
 

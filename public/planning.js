@@ -1,4 +1,4 @@
-import { setupThemeToggle, colorVarForKey, formatMinutes, fetchEquipmentList, createStepEditorCard } from "./shared.js";
+import { setupThemeToggle, fetchEquipmentList, createStepEditorCard, renderScheduleTable } from "./shared.js";
 
 setupThemeToggle();
 
@@ -18,6 +18,10 @@ const retryBtn = document.getElementById("retry-btn");
 const scheduleSectionEl = document.getElementById("schedule-section");
 const scheduleTableBody = document.querySelector("#schedule-table tbody");
 const makespanEl = document.getElementById("makespan");
+const sessionNameInput = document.getElementById("session-name-input");
+const saveSessionBtn = document.getElementById("save-session-btn");
+const saveSessionStatusEl = document.getElementById("save-session-status");
+let currentSlugs = [];
 
 async function init() {
   const [recipesRes, equipment, menusRes] = await Promise.all([
@@ -136,42 +140,36 @@ async function loadPlanning() {
     scheduleSectionEl.hidden = true;
   } else {
     missingSectionEl.hidden = true;
-    renderSchedule(data.schedule);
+    currentSlugs = [...selectedSlugs];
+    renderScheduleTable(data.schedule, scheduleTableBody, makespanEl);
     document.getElementById("pdf-link").href = `/api/planning/pdf?slugs=${encodeURIComponent(slugs)}`;
+    saveSessionStatusEl.textContent = "";
     scheduleSectionEl.hidden = false;
   }
 }
 
-function renderSchedule(schedule) {
-  scheduleTableBody.innerHTML = "";
-  for (const step of schedule.steps) {
-    const tr = document.createElement("tr");
-
-    const recipeTd = document.createElement("td");
-    recipeTd.className = "recipe-name";
-    recipeTd.style.setProperty("--recipe-color", `var(${colorVarForKey(step.recipeTitle)})`);
-    recipeTd.textContent = step.recipeTitle;
-
-    const equipmentTd = document.createElement("td");
-    for (const id of step.equipmentIds) {
-      const tag = document.createElement("span");
-      tag.className = "tag";
-      tag.style.setProperty("--tag-color", `var(${colorVarForKey(id)})`);
-      tag.textContent = id;
-      equipmentTd.append(tag);
+saveSessionBtn.addEventListener("click", async () => {
+  if (currentSlugs.length === 0) return;
+  saveSessionBtn.disabled = true;
+  saveSessionStatusEl.textContent = "";
+  try {
+    const res = await fetch("/api/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slugs: currentSlugs, name: sessionNameInput.value.trim() || undefined }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error);
     }
-
-    const startTd = document.createElement("td");
-    startTd.textContent = formatMinutes(step.startMinutes);
-    const endTd = document.createElement("td");
-    endTd.textContent = formatMinutes(step.endMinutes);
-    const descTd = document.createElement("td");
-    descTd.textContent = step.description;
-
-    tr.append(startTd, endTd, recipeTd, descTd, equipmentTd);
-    scheduleTableBody.append(tr);
+    const session = await res.json();
+    saveSessionStatusEl.textContent = `Session "${session.name}" sauvegardée — retrouvable dans l'Historique.`;
+    sessionNameInput.value = "";
+  } catch (err) {
+    saveSessionStatusEl.textContent = `Échec de la sauvegarde : ${err.message}`;
+  } finally {
+    saveSessionBtn.disabled = false;
   }
-  makespanEl.textContent = `⏱ Temps total : ${formatMinutes(schedule.makespanMinutes)}`;
-}
+});
 
 init();
