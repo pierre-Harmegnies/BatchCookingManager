@@ -218,7 +218,15 @@ export function createStepEditorCard(step, existingMetadata, equipmentList) {
       subStepRows.splice(subStepRows.indexOf(rowData), 1);
     });
 
-    row.append(descInput, durInput, eqWrap, parallelLabel, removeBtn);
+    const top = document.createElement("div");
+    top.className = "substep-row-top";
+    top.append(descInput, durInput, removeBtn);
+
+    const bottom = document.createElement("div");
+    bottom.className = "substep-row-bottom";
+    bottom.append(eqWrap, parallelLabel);
+
+    row.append(top, bottom);
     subStepsWrap.insertBefore(row, addSubStepBtn);
 
     const rowData = {
