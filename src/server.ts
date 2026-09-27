@@ -47,6 +47,10 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "..", "public")));
 
+app.get("/recettes", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "public", "recettes.html"));
+});
+
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
 app.get("/api/recipes", async (_req, res) => {

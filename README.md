@@ -14,9 +14,13 @@ Une étape MaCuisine trop groupée (ex: "poêler les haricots ET cuire les pâte
 
 Logique de dépendances (`computeSubStepWaves` dans `src/macuisine/toDomain.ts`) : les sous-étapes consécutives marquées "parallèle" forment une même "vague" (même dépendance, exécutables en même temps) ; une sous-étape normale démarre une nouvelle vague qui dépend de **toute** la vague précédente. La première vague hérite de la dépendance externe de l'étape d'origine ; les étapes qui dépendaient de l'étape d'origine sont automatiquement rebranchées sur la **dernière** vague (pas juste la première sous-étape) — testé de bout en bout sur une vraie recette (Cookeo) et validé unitairement sur un cas de fusion parallèle.
 
-## Revoir une recette indépendamment d'un planning
+## Pages
 
-Section "Revoir une recette" en bas de page : liste toutes les recettes MaCuisine, affiche l'état de configuration de chaque étape (`GET /api/recipes/:slug/metadata`) et permet de la corriger via la même carte d'édition que l'écran de complétion (durée, équipement, dépendance, sous-étapes) — sans avoir besoin de la sélectionner dans un planning. La logique de carte a été extraite dans `createStepEditorCard(step, existingMetadata)` (`public/app.js`), réutilisée par les deux écrans, avec pré-remplissage des champs quand une configuration existe déjà.
+Deux pages, avec une petite nav commune (façon MaCuisine) :
+- `/` (`index.html` + `planning.js`) — planification : charger un menu, choisir les recettes, générer le planning, écran de complétion.
+- `/recettes` (`recettes.html` + `review.js`) — revoir/corriger la configuration d'ordonnancement de n'importe quelle recette, indépendamment de toute sélection pour un planning (`GET /api/recipes/:slug/metadata`).
+
+Le code commun (thème clair/sombre, couleurs par recette/équipement, et la carte d'édition d'étape `createStepEditorCard`) est factorisé dans `public/shared.js` (module ES, `import`/`export`), consommé par les deux pages. Pré-remplissage automatique des champs quand une configuration existe déjà.
 
 ## Identité visuelle
 
