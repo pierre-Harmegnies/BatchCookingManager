@@ -32,8 +32,11 @@
   --h-violet: #8b5cf6;
 }
 
+/* Thème sombre : suit le système par défaut, sauf override explicite via le
+   bouton clair/sombre (attribut data-theme posé en JS, persisté en localStorage). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg: #1c1917;
     --fg: #f5f5f4;
     --muted: #a8a29e;
@@ -57,6 +60,33 @@
     --h-violet: #a78bfa;
   }
 }
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1c1917;
+  --fg: #f5f5f4;
+  --muted: #a8a29e;
+  --muted-light: #78716c;
+  --border: #44403c;
+  --card: #292524;
+
+  --cuisine-50: #3a2410;
+  --cuisine-100: #4a2d0f;
+  --cuisine-200: #7a4413;
+  --cuisine-300: #b25d10;
+  --cuisine-400: #e07316;
+  --cuisine-500: #f19633;
+  --cuisine-600: #f6bb6d;
+  --cuisine-700: #fad7a5;
+
+  --h-sky: #38bdf8;
+  --h-amber: #fbbf24;
+  --h-rose: #fb7185;
+  --h-teal: #2dd4bf;
+  --h-violet: #a78bfa;
+}
+
+:root[data-theme="light"] { color-scheme: light; }
 
 * { box-sizing: border-box; }
 
@@ -101,6 +131,18 @@ header.page-header .header-inner {
 }
 header.page-header h1 { font-size: 1.1rem; font-weight: 700; margin: 0; }
 header.page-header p { color: var(--muted); font-size: 0.85rem; margin: 0; }
+.header-title { flex: 1; }
+
+#theme-toggle-btn {
+  background: var(--card);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  box-shadow: none;
+  padding: 0.5rem;
+  border-radius: 0.7rem;
+  flex-shrink: 0;
+}
+#theme-toggle-btn:hover:not(:disabled) { color: var(--cuisine-600); border-color: var(--cuisine-300); filter: none; }
 
 main { padding-top: 1.5rem; padding-bottom: 2.5rem; }
 
