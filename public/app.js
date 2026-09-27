@@ -480,7 +480,7 @@ function createStepEditorCard(step, existingMetadata) {
 // Palette partagée avec l'export PDF (planningPdf.ts) : chaque recette/équipement
 // se voit attribuer une couleur stable (par hash du nom), pour repérer d'un
 // coup d'œil qui fait quoi dans le tableau du planning.
-const COLOR_VARS = ["--r1", "--r2", "--r3", "--r4", "--r5"];
+const COLOR_VARS = ["--h-sky", "--h-amber", "--h-rose", "--h-teal", "--h-violet"];
 
 function colorVarForKey(key) {
   let hash = 0;

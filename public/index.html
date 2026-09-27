@@ -3,24 +3,50 @@
 <head>
   <meta charset="utf-8" />
   <title>BatchCookingManager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <header>
-    <h1>🍲 BatchCookingManager</h1>
-    <p>Choisis jusqu'à 4 menus de la semaine, on te génère le pas-à-pas de préparation.</p>
+  <header class="page-header">
+    <div class="header-inner">
+      <div class="logo-badge">
+        <!-- ChefHat (lucide) -->
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z" />
+          <path d="M6 17h12" />
+        </svg>
+      </div>
+      <div>
+        <h1>BatchCookingManager</h1>
+        <p>Choisis jusqu'à 4 menus de la semaine, on te génère le pas-à-pas de préparation.</p>
+      </div>
+    </div>
   </header>
 
   <main>
     <div class="grid-2">
       <section id="menu-picker">
-        <h2>🗓️ 1. Charger un menu de la semaine</h2>
+        <h2>
+          <span class="section-icon">
+            <!-- CalendarDays -->
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M16 2v4" /><path d="M8 2v4" /><path d="M3 10h18" /></svg>
+          </span>
+          1. Charger un menu de la semaine
+        </h2>
         <p class="hint">Choisis un menu déjà planifié dans MaCuisine : ses recettes seront présélectionnées ci-dessous (max 4 — au-delà, seules les 4 premières sont cochées, à ajuster manuellement).</p>
         <ul id="menu-list"></ul>
       </section>
 
       <section id="recipe-picker">
-        <h2>📋 2. Choisir les menus (max 4)</h2>
+        <h2>
+          <span class="section-icon">
+            <!-- ClipboardList -->
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M9 12h6" /><path d="M9 16h6" /></svg>
+          </span>
+          2. Choisir les menus (max 4)
+        </h2>
         <input type="search" id="recipe-search" placeholder="Rechercher une recette..." />
         <ul id="recipe-list"></ul>
         <button id="generate-btn" disabled>Générer le planning</button>
@@ -29,17 +55,32 @@
     </div>
 
     <section id="missing-section" hidden>
-      <h2>✏️ 3. Compléter les étapes manquantes</h2>
+      <h2>
+        <span class="section-icon">
+          <!-- PencilLine -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9" /><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z" /></svg>
+        </span>
+        3. Compléter les étapes manquantes
+      </h2>
       <p>Ces étapes n'ont pas encore de durée/équipement renseignés — impossible de générer un planning fiable sans ça.</p>
       <div id="missing-list"></div>
       <button id="retry-btn">Regénérer le planning</button>
     </section>
 
     <section id="schedule-section" hidden>
-      <h2>📅 Planning de préparation</h2>
+      <h2>
+        <span class="section-icon">
+          <!-- Clock -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16.5 15" /></svg>
+        </span>
+        Planning de préparation
+      </h2>
       <p id="makespan"></p>
       <a id="pdf-link" href="#" download>
-        <button type="button">⬇ Télécharger en PDF</button>
+        <button type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /></svg>
+          Télécharger en PDF
+        </button>
       </a>
       <table id="schedule-table">
         <thead>
@@ -52,19 +93,32 @@
     <hr class="section-divider" />
 
     <section id="recipe-review">
-      <h2>📖 Revoir une recette</h2>
+      <h2>
+        <span class="section-icon">
+          <!-- BookOpen -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14" /><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" /></svg>
+        </span>
+        Revoir une recette
+      </h2>
       <p class="hint">Consulte ou corrige la configuration d'ordonnancement d'une recette (durée, équipement, sous-étapes) indépendamment de toute sélection pour un planning.</p>
       <input type="search" id="review-recipe-search" placeholder="Rechercher une recette..." />
       <ul id="review-recipe-list" class="button-list"></ul>
 
       <div id="review-recipe-detail" hidden>
         <h3 id="review-recipe-title"></h3>
-        <button type="button" id="suggest-all-btn" class="secondary">💡 Suggestion IA pour toute la recette</button>
+        <button type="button" id="suggest-all-btn" class="secondary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" /></svg>
+          Suggestion IA pour toute la recette
+        </button>
         <p id="suggest-all-status" class="hint"></p>
         <div id="review-steps-list"></div>
       </div>
     </section>
   </main>
+
+  <footer class="page-footer">
+    <p>BatchCookingManager — pas-à-pas de préparation pour le batch cooking, connecté à MaCuisine</p>
+  </footer>
 
   <script src="/app.js"></script>
 </body>

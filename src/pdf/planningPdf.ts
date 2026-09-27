@@ -1,7 +1,9 @@
 import PDFDocument from "pdfkit";
 import type { Schedule } from "../types.js";
 
-const PALETTE = ["#E07A5F", "#3D5A80", "#81B29A", "#B5651D"];
+// Même palette que le web (public/style.css, --h-sky/amber/rose/teal/violet),
+// elle-même inspirée de MaCuisine (frontend/tailwind.config.js).
+const PALETTE = ["#0ea5e9", "#f59e0b", "#f43f5e", "#14b8a6", "#8b5cf6"];
 
 const PAGE_MARGIN = 50;
 const PAGE_WIDTH = 595.28; // A4 portrait, points
@@ -56,7 +58,7 @@ function drawHeader(
   doc.font("Helvetica-Bold").fontSize(12);
   const badgeWidth = doc.widthOfString(badgeText) + 20;
   const badgeY = doc.y;
-  doc.roundedRect(PAGE_MARGIN, badgeY, badgeWidth, 24, 4).fill("#b5651d");
+  doc.roundedRect(PAGE_MARGIN, badgeY, badgeWidth, 24, 4).fill("#ee7b12");
   doc.fillColor("#ffffff").text(badgeText, PAGE_MARGIN + 10, badgeY + 6);
 
   doc.y = badgeY + 24 + 14;
