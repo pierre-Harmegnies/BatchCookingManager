@@ -5,7 +5,7 @@ import express from "express";
 import { scheduleRecipes } from "./scheduler.js";
 import { fetchRecipeBySlug, fetchRecipeList, fetchMenuList, extractRecipesFromMenu } from "./macuisine/client.js";
 import { toDomainRecipe, type MissingStep } from "./macuisine/toDomain.js";
-import { suggestStepMetadata } from "./ai/suggestStepMetadata.js";
+import { suggestStepMetadata, suggestStepMetadataBatch } from "./ai/suggestStepMetadata.js";
 import { listEquipment } from "./store/equipmentStore.js";
 import { getStepMetadata, upsertStepMetadata } from "./store/stepMetadataStore.js";
 import { generatePlanningPdf } from "./pdf/planningPdf.js";
@@ -99,6 +99,27 @@ app.get("/api/recipes/:slug/metadata", async (req, res) => {
       }));
 
     res.json({ slug: recipe.slug, title: recipe.title, steps });
+  } catch (err) {
+    res.status(502).json({ error: (err as Error).message });
+  }
+});
+
+/**
+ * Suggestion IA pour toutes les étapes d'une recette en un seul appel — pour
+ * l'écran "Revoir une recette", évite de cliquer "Suggérer via IA" étape par
+ * étape. Comme pour la suggestion par étape, rien n'est enregistré ici : le
+ * client pré-remplit les formulaires, l'utilisateur valide/corrige puis
+ * enregistre lui-même chaque étape.
+ */
+app.post("/api/recipes/:slug/suggest-all", async (req, res) => {
+  try {
+    const recipe = await fetchRecipeBySlug(req.params.slug);
+    const equipment = await listEquipment();
+    const suggestions = await suggestStepMetadataBatch(
+      recipe.steps.map((s) => ({ stepId: s.id, description: s.description })),
+      equipment,
+    );
+    res.json({ suggestions });
   } catch (err) {
     res.status(502).json({ error: (err as Error).message });
   }

@@ -18,6 +18,8 @@ Logique de dépendances (`computeSubStepWaves` dans `src/macuisine/toDomain.ts`)
 
 Section "Revoir une recette" en bas de page : liste toutes les recettes MaCuisine, affiche l'état de configuration de chaque étape (`GET /api/recipes/:slug/metadata`) et permet de la corriger via la même carte d'édition que l'écran de complétion (durée, équipement, dépendance, sous-étapes) — sans avoir besoin de la sélectionner dans un planning. La logique de carte a été extraite dans `createStepEditorCard(step, existingMetadata)` (`public/app.js`), réutilisée par les deux écrans, avec pré-remplissage des champs quand une configuration existe déjà.
 
+Bouton "💡 Suggestion IA pour toute la recette" : un seul appel IA groupé (`POST /api/recipes/:slug/suggest-all`, `suggestStepMetadataBatch`) pré-remplit toutes les étapes d'un coup, au lieu d'un appel par étape — même garantie que la suggestion individuelle (jamais appliqué automatiquement, chaque étape doit être vérifiée puis enregistrée séparément). Modèle utilisé pour toute suggestion IA (individuelle ou groupée) : **`claude-haiku-4-5-20251001`** plutôt que Sonnet — tâche d'extraction structurée simple, Haiku est nettement moins cher et suffisant vu que le résultat est toujours revalidé manuellement.
+
 ## Menus MaCuisine
 
 `GET /api/menus` (section "1. Charger un menu de la semaine" dans l'UI) liste les menus déjà planifiés dans MaCuisine et en extrait les recettes distinctes (`extractRecipesFromMenu` dans `src/macuisine/client.ts`, tous jours/repas confondus). Cliquer "Charger" présélectionne ces recettes dans le sélecteur libre ci-dessous (max 4 ; au-delà, seules les 4 premières sont cochées, à ajuster manuellement) — la sélection libre reste disponible en complément, elle n'est pas remplacée.

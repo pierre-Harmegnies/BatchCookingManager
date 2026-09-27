@@ -20,6 +20,10 @@ const reviewListEl = document.getElementById("review-recipe-list");
 const reviewDetailEl = document.getElementById("review-recipe-detail");
 const reviewStepsEl = document.getElementById("review-steps-list");
 const reviewTitleEl = document.getElementById("review-recipe-title");
+const suggestAllBtn = document.getElementById("suggest-all-btn");
+const suggestAllStatusEl = document.getElementById("suggest-all-status");
+let currentReviewSlug = null;
+let currentReviewCards = [];
 
 async function init() {
   const [recipesRes, equipmentRes, menusRes] = await Promise.all([
@@ -133,7 +137,7 @@ async function loadPlanning() {
   if (data.missingSteps.length > 0) {
     missingListEl.innerHTML = "";
     for (const step of data.missingSteps) {
-      missingListEl.append(createStepEditorCard(step, null));
+      missingListEl.append(createStepEditorCard(step, null).element);
     }
     missingSectionEl.hidden = false;
     scheduleSectionEl.hidden = true;
@@ -179,17 +183,48 @@ async function loadRecipeReview(slug) {
   reviewTitleEl.textContent = data.title;
   reviewTitleEl.style.color = `var(${colorVarForKey(data.title)})`;
   reviewStepsEl.innerHTML = "";
-  for (const step of data.steps) {
+  suggestAllStatusEl.textContent = "";
+  currentReviewSlug = data.slug;
+  currentReviewCards = data.steps.map((step) => {
     const stepForCard = {
       stepId: step.stepId,
       recipeSlug: data.slug,
       recipeTitle: data.title,
       description: step.description,
     };
-    reviewStepsEl.append(createStepEditorCard(stepForCard, step.metadata));
-  }
+    const card = createStepEditorCard(stepForCard, step.metadata);
+    reviewStepsEl.append(card.element);
+    return card;
+  });
   reviewDetailEl.hidden = false;
 }
+
+suggestAllBtn.addEventListener("click", async () => {
+  if (!currentReviewSlug) return;
+  suggestAllBtn.disabled = true;
+  suggestAllBtn.textContent = "Suggestion en cours pour toute la recette...";
+  suggestAllStatusEl.textContent = "";
+  try {
+    const res = await fetch(`/api/recipes/${encodeURIComponent(currentReviewSlug)}/suggest-all`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error);
+    }
+    const { suggestions } = await res.json();
+    for (const card of currentReviewCards) {
+      const suggestion = suggestions[card.stepId];
+      if (suggestion) card.applySuggestion(suggestion, "Suggestion IA (groupée) appliquée — vérifie et enregistre.");
+    }
+    suggestAllStatusEl.textContent = `Suggestions appliquées pour ${Object.keys(suggestions).length} étape(s) — vérifie chaque étape avant d'enregistrer.`;
+  } catch (err) {
+    suggestAllStatusEl.textContent = `Échec de la suggestion IA groupée : ${err.message}`;
+  } finally {
+    suggestAllBtn.disabled = false;
+    suggestAllBtn.textContent = "💡 Suggestion IA pour toute la recette";
+  }
+});
 
 // --- Carte d'édition d'une étape (durée/équipement/dépendance/sous-étapes) ---
 // Réutilisée pour compléter une étape manquante (écran de planning) et pour
@@ -361,6 +396,14 @@ function createStepEditorCard(step, existingMetadata) {
     status.textContent = "Configuration existante — modifie et enregistre si besoin.";
   }
 
+  function applySuggestion(suggestion, statusText) {
+    durationInput.value = suggestion.durationMinutes;
+    for (const id of Object.keys(checkboxes)) {
+      checkboxes[id].checked = suggestion.equipmentIds.includes(id);
+    }
+    status.textContent = statusText ?? "Suggestion IA appliquée — vérifie et enregistre.";
+  }
+
   const suggestBtn = document.createElement("button");
   suggestBtn.type = "button";
   suggestBtn.className = "secondary";
@@ -378,12 +421,7 @@ function createStepEditorCard(step, existingMetadata) {
         const err = await res.json().catch(() => ({ error: res.statusText }));
         throw new Error(err.error);
       }
-      const suggestion = await res.json();
-      durationInput.value = suggestion.durationMinutes;
-      for (const id of Object.keys(checkboxes)) {
-        checkboxes[id].checked = suggestion.equipmentIds.includes(id);
-      }
-      status.textContent = "Suggestion IA appliquée — vérifie et enregistre.";
+      applySuggestion(await res.json());
     } catch (err) {
       status.textContent = `Échec de la suggestion IA: ${err.message}`;
     } finally {
@@ -436,7 +474,7 @@ function createStepEditorCard(step, existingMetadata) {
   actions.append(suggestBtn, splitToggleBtn, saveBtn);
 
   card.append(title, desc, simpleFieldsWrap, subStepsWrap, actions, status);
-  return card;
+  return { element: card, stepId: step.stepId, applySuggestion };
 }
 
 // Palette partagée avec l'export PDF (planningPdf.ts) : chaque recette/équipement
