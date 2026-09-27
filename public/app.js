@@ -15,6 +15,12 @@ const scheduleSectionEl = document.getElementById("schedule-section");
 const scheduleTableBody = document.querySelector("#schedule-table tbody");
 const makespanEl = document.getElementById("makespan");
 
+const reviewSearchEl = document.getElementById("review-recipe-search");
+const reviewListEl = document.getElementById("review-recipe-list");
+const reviewDetailEl = document.getElementById("review-recipe-detail");
+const reviewStepsEl = document.getElementById("review-steps-list");
+const reviewTitleEl = document.getElementById("review-recipe-title");
+
 async function init() {
   const [recipesRes, equipmentRes, menusRes] = await Promise.all([
     fetch("/api/recipes"),
@@ -25,6 +31,7 @@ async function init() {
   equipmentList = await equipmentRes.json();
   renderRecipeList(allRecipes);
   renderMenuList(await menusRes.json());
+  renderReviewRecipeList(allRecipes);
 }
 
 function renderMenuList(menus) {
@@ -124,7 +131,10 @@ async function loadPlanning() {
   const data = await res.json();
 
   if (data.missingSteps.length > 0) {
-    renderMissingSteps(data.missingSteps);
+    missingListEl.innerHTML = "";
+    for (const step of data.missingSteps) {
+      missingListEl.append(createStepEditorCard(step, null));
+    }
     missingSectionEl.hidden = false;
     scheduleSectionEl.hidden = true;
   } else {
@@ -135,220 +145,297 @@ async function loadPlanning() {
   }
 }
 
-function renderMissingSteps(missingSteps) {
-  missingListEl.innerHTML = "";
-  for (const step of missingSteps) {
-    const card = document.createElement("div");
-    card.className = "missing-step";
+// --- Revoir/éditer une recette indépendamment d'un planning ---
 
-    const title = document.createElement("h4");
-    title.textContent = step.recipeTitle;
-    const desc = document.createElement("div");
-    desc.className = "desc";
-    desc.textContent = step.description;
+function renderReviewRecipeList(recipes) {
+  reviewListEl.innerHTML = "";
+  for (const recipe of recipes) {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "secondary";
+    btn.textContent = recipe.title;
+    btn.addEventListener("click", () => loadRecipeReview(recipe.slug));
+    li.append(btn);
+    reviewListEl.append(li);
+  }
+}
 
-    const durationInput = document.createElement("input");
-    durationInput.type = "number";
-    durationInput.min = "0";
-    durationInput.placeholder = "Durée (minutes)";
+reviewSearchEl.addEventListener("input", () => {
+  const q = reviewSearchEl.value.trim().toLowerCase();
+  const filtered = q ? allRecipes.filter((r) => r.title.toLowerCase().includes(q)) : allRecipes;
+  renderReviewRecipeList(filtered);
+});
 
-    const equipmentWrap = document.createElement("div");
-    equipmentWrap.className = "equipment-options";
-    const checkboxes = {};
+async function loadRecipeReview(slug) {
+  const res = await fetch(`/api/recipes/${encodeURIComponent(slug)}/metadata`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    alert(`Erreur: ${err.error}`);
+    return;
+  }
+  const data = await res.json();
+
+  reviewTitleEl.textContent = data.title;
+  reviewStepsEl.innerHTML = "";
+  for (const step of data.steps) {
+    const stepForCard = {
+      stepId: step.stepId,
+      recipeSlug: data.slug,
+      recipeTitle: data.title,
+      description: step.description,
+    };
+    reviewStepsEl.append(createStepEditorCard(stepForCard, step.metadata));
+  }
+  reviewDetailEl.hidden = false;
+}
+
+// --- Carte d'édition d'une étape (durée/équipement/dépendance/sous-étapes) ---
+// Réutilisée pour compléter une étape manquante (écran de planning) et pour
+// revoir/corriger une étape déjà configurée (écran "Revoir une recette").
+
+function createStepEditorCard(step, existingMetadata) {
+  const card = document.createElement("div");
+  card.className = "missing-step";
+  if (existingMetadata) card.classList.add("already-configured");
+
+  const title = document.createElement("h4");
+  title.textContent = step.recipeTitle;
+  const desc = document.createElement("div");
+  desc.className = "desc";
+  desc.textContent = step.description;
+
+  const durationInput = document.createElement("input");
+  durationInput.type = "number";
+  durationInput.min = "0";
+  durationInput.placeholder = "Durée (minutes)";
+  if (existingMetadata && !existingMetadata.subSteps?.length) {
+    durationInput.value = existingMetadata.durationMinutes;
+  }
+
+  const equipmentWrap = document.createElement("div");
+  equipmentWrap.className = "equipment-options";
+  const checkboxes = {};
+  for (const eq of equipmentList) {
+    const label = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.value = eq.id;
+    if (existingMetadata && !existingMetadata.subSteps?.length) {
+      cb.checked = existingMetadata.equipmentIds?.includes(eq.id) ?? false;
+    }
+    checkboxes[eq.id] = cb;
+    label.append(cb, document.createTextNode(eq.name));
+    equipmentWrap.append(label);
+  }
+
+  const independentLabel = document.createElement("label");
+  independentLabel.className = "independent-toggle";
+  const independentCb = document.createElement("input");
+  independentCb.type = "checkbox";
+  if (existingMetadata && Array.isArray(existingMetadata.dependsOn) && existingMetadata.dependsOn.length === 0) {
+    independentCb.checked = true;
+  }
+  independentLabel.append(
+    independentCb,
+    document.createTextNode(
+      " Étape indépendante (peut être faite en parallèle, ex: pendant qu'un plat mijote — sinon elle attend la fin de l'étape précédente de la même recette)",
+    ),
+  );
+
+  const simpleFieldsWrap = document.createElement("div");
+  simpleFieldsWrap.append(durationInput, equipmentWrap, independentLabel);
+
+  const subStepsWrap = document.createElement("div");
+  subStepsWrap.className = "substeps-wrap";
+  subStepsWrap.hidden = true;
+  const subStepRows = [];
+  let subStepCounter = 0;
+
+  function addSubStepRow(prefill) {
+    const rowIndex = subStepRows.length;
+    const row = document.createElement("div");
+    row.className = "substep-row";
+
+    const descInput = document.createElement("input");
+    descInput.type = "text";
+    descInput.placeholder = "Description de la sous-étape";
+    descInput.value = prefill?.description ?? "";
+
+    const durInput = document.createElement("input");
+    durInput.type = "number";
+    durInput.min = "0";
+    durInput.placeholder = "Durée (min)";
+    if (prefill?.durationMinutes != null) durInput.value = prefill.durationMinutes;
+
+    const eqWrap = document.createElement("div");
+    eqWrap.className = "equipment-options";
+    const eqBoxes = {};
     for (const eq of equipmentList) {
       const label = document.createElement("label");
       const cb = document.createElement("input");
       cb.type = "checkbox";
       cb.value = eq.id;
-      checkboxes[eq.id] = cb;
+      if (prefill?.equipmentIds?.includes(eq.id)) cb.checked = true;
+      eqBoxes[eq.id] = cb;
       label.append(cb, document.createTextNode(eq.name));
-      equipmentWrap.append(label);
+      eqWrap.append(label);
     }
 
-    const independentLabel = document.createElement("label");
-    independentLabel.className = "independent-toggle";
-    const independentCb = document.createElement("input");
-    independentCb.type = "checkbox";
-    independentLabel.append(
-      independentCb,
-      document.createTextNode(
-        " Étape indépendante (peut être faite en parallèle, ex: pendant qu'un plat mijote — sinon elle attend la fin de l'étape précédente de la même recette)",
-      ),
-    );
+    const parallelLabel = document.createElement("label");
+    parallelLabel.className = "parallel-toggle";
+    const parallelCb = document.createElement("input");
+    parallelCb.type = "checkbox";
+    if (rowIndex === 0) parallelCb.disabled = true;
+    else if (prefill?.parallelWithPrevious) parallelCb.checked = true;
+    parallelLabel.append(parallelCb, document.createTextNode(" en parallèle de la précédente"));
 
-    const simpleFieldsWrap = document.createElement("div");
-    simpleFieldsWrap.append(durationInput, equipmentWrap, independentLabel);
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "secondary";
+    removeBtn.textContent = "Retirer";
+    removeBtn.addEventListener("click", () => {
+      row.remove();
+      subStepRows.splice(subStepRows.indexOf(rowData), 1);
+    });
 
-    const subStepsWrap = document.createElement("div");
-    subStepsWrap.className = "substeps-wrap";
-    subStepsWrap.hidden = true;
-    const subStepRows = [];
-    let subStepCounter = 0;
+    row.append(descInput, durInput, eqWrap, parallelLabel, removeBtn);
+    subStepsWrap.insertBefore(row, addSubStepBtn);
 
-    function addSubStepRow(prefill) {
-      const rowIndex = subStepRows.length;
-      const row = document.createElement("div");
-      row.className = "substep-row";
+    const rowData = {
+      id: prefill?.id ?? `sub-${++subStepCounter}`,
+      getData: () => ({
+        id: rowData.id,
+        description: descInput.value.trim(),
+        durationMinutes: Number(durInput.value),
+        equipmentIds: Object.keys(eqBoxes).filter((id) => eqBoxes[id].checked),
+        parallelWithPrevious: parallelCb.checked,
+      }),
+    };
+    subStepRows.push(rowData);
+  }
 
-      const descInput = document.createElement("input");
-      descInput.type = "text";
-      descInput.placeholder = "Description de la sous-étape";
-      descInput.value = prefill?.description ?? "";
+  const addSubStepBtn = document.createElement("button");
+  addSubStepBtn.type = "button";
+  addSubStepBtn.className = "secondary";
+  addSubStepBtn.textContent = "+ Ajouter une sous-étape";
+  addSubStepBtn.addEventListener("click", () => addSubStepRow());
+  subStepsWrap.append(addSubStepBtn);
 
-      const durInput = document.createElement("input");
-      durInput.type = "number";
-      durInput.min = "0";
-      durInput.placeholder = "Durée (min)";
-
-      const eqWrap = document.createElement("div");
-      eqWrap.className = "equipment-options";
-      const eqBoxes = {};
-      for (const eq of equipmentList) {
-        const label = document.createElement("label");
-        const cb = document.createElement("input");
-        cb.type = "checkbox";
-        cb.value = eq.id;
-        eqBoxes[eq.id] = cb;
-        label.append(cb, document.createTextNode(eq.name));
-        eqWrap.append(label);
-      }
-
-      const parallelLabel = document.createElement("label");
-      parallelLabel.className = "parallel-toggle";
-      const parallelCb = document.createElement("input");
-      parallelCb.type = "checkbox";
-      if (rowIndex === 0) parallelCb.disabled = true;
-      parallelLabel.append(parallelCb, document.createTextNode(" en parallèle de la précédente"));
-
-      const removeBtn = document.createElement("button");
-      removeBtn.type = "button";
-      removeBtn.className = "secondary";
-      removeBtn.textContent = "Retirer";
-      removeBtn.addEventListener("click", () => {
-        row.remove();
-        subStepRows.splice(subStepRows.indexOf(rowData), 1);
-      });
-
-      row.append(descInput, durInput, eqWrap, parallelLabel, removeBtn);
-      subStepsWrap.insertBefore(row, addSubStepBtn);
-
-      const rowData = {
-        id: `sub-${++subStepCounter}`,
-        getData: () => ({
-          id: rowData.id,
-          description: descInput.value.trim(),
-          durationMinutes: Number(durInput.value),
-          equipmentIds: Object.keys(eqBoxes).filter((id) => eqBoxes[id].checked),
-          parallelWithPrevious: parallelCb.checked,
-        }),
-      };
-      subStepRows.push(rowData);
-    }
-
-    const addSubStepBtn = document.createElement("button");
-    addSubStepBtn.type = "button";
-    addSubStepBtn.className = "secondary";
-    addSubStepBtn.textContent = "+ Ajouter une sous-étape";
-    addSubStepBtn.addEventListener("click", () => addSubStepRow());
-    subStepsWrap.append(addSubStepBtn);
-
-    let splitMode = false;
-    const splitToggleBtn = document.createElement("button");
-    splitToggleBtn.type = "button";
-    splitToggleBtn.className = "secondary";
-    splitToggleBtn.textContent = "Diviser en sous-étapes";
-    splitToggleBtn.title = "Utile si cette étape MaCuisine mélange plusieurs actions distinctes (ex: \"poêler les haricots ET cuire les pâtes\")";
-    splitToggleBtn.addEventListener("click", () => {
-      splitMode = !splitMode;
-      simpleFieldsWrap.hidden = splitMode;
-      subStepsWrap.hidden = !splitMode;
-      splitToggleBtn.textContent = splitMode ? "Revenir à une seule étape" : "Diviser en sous-étapes";
-      if (splitMode && subStepRows.length === 0) {
+  let splitMode = false;
+  const splitToggleBtn = document.createElement("button");
+  splitToggleBtn.type = "button";
+  splitToggleBtn.className = "secondary";
+  splitToggleBtn.textContent = "Diviser en sous-étapes";
+  splitToggleBtn.title = "Utile si cette étape MaCuisine mélange plusieurs actions distinctes (ex: \"poêler les haricots ET cuire les pâtes\")";
+  function enterSplitMode() {
+    splitMode = true;
+    simpleFieldsWrap.hidden = true;
+    subStepsWrap.hidden = false;
+    splitToggleBtn.textContent = "Revenir à une seule étape";
+  }
+  splitToggleBtn.addEventListener("click", () => {
+    if (splitMode) {
+      splitMode = false;
+      simpleFieldsWrap.hidden = false;
+      subStepsWrap.hidden = true;
+      splitToggleBtn.textContent = "Diviser en sous-étapes";
+    } else {
+      enterSplitMode();
+      if (subStepRows.length === 0) {
         addSubStepRow({ description: step.description });
         addSubStepRow();
       }
-    });
+    }
+  });
 
-    const status = document.createElement("div");
-    status.className = "status";
+  if (existingMetadata?.subSteps?.length) {
+    enterSplitMode();
+    for (const sub of existingMetadata.subSteps) addSubStepRow(sub);
+  }
 
-    const suggestBtn = document.createElement("button");
-    suggestBtn.type = "button";
-    suggestBtn.className = "secondary";
-    suggestBtn.textContent = "Suggérer via IA";
-    suggestBtn.addEventListener("click", async () => {
-      suggestBtn.disabled = true;
-      suggestBtn.textContent = "Suggestion en cours...";
-      try {
-        const res = await fetch("/api/step-metadata/suggest", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ description: step.description }),
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: res.statusText }));
-          throw new Error(err.error);
-        }
-        const suggestion = await res.json();
-        durationInput.value = suggestion.durationMinutes;
-        for (const id of Object.keys(checkboxes)) {
-          checkboxes[id].checked = suggestion.equipmentIds.includes(id);
-        }
-        status.textContent = "Suggestion IA appliquée — vérifie et enregistre.";
-      } catch (err) {
-        status.textContent = `Échec de la suggestion IA: ${err.message}`;
-      } finally {
-        suggestBtn.disabled = false;
-        suggestBtn.textContent = "Suggérer via IA";
-      }
-    });
+  const status = document.createElement("div");
+  status.className = "status";
+  if (existingMetadata) {
+    status.textContent = "Configuration existante — modifie et enregistre si besoin.";
+  }
 
-    const saveBtn = document.createElement("button");
-    saveBtn.type = "button";
-    saveBtn.textContent = "Enregistrer";
-    saveBtn.addEventListener("click", async () => {
-      let payload;
-
-      if (splitMode) {
-        const subSteps = subStepRows.map((r) => r.getData());
-        const invalid = subSteps.find((s) => !s.description || !s.durationMinutes || s.durationMinutes <= 0);
-        if (invalid || subSteps.length === 0) {
-          status.textContent = "Chaque sous-étape a besoin d'une description et d'une durée valide.";
-          return;
-        }
-        payload = { stepId: step.stepId, recipeSlug: step.recipeSlug, subSteps };
-      } else {
-        const durationMinutes = Number(durationInput.value);
-        if (!durationMinutes || durationMinutes <= 0) {
-          status.textContent = "Indique une durée valide avant d'enregistrer.";
-          return;
-        }
-        const equipmentIds = Object.keys(checkboxes).filter((id) => checkboxes[id].checked);
-        payload = { stepId: step.stepId, recipeSlug: step.recipeSlug, durationMinutes, equipmentIds };
-        if (independentCb.checked) payload.dependsOn = [];
-      }
-
-      const res = await fetch("/api/step-metadata", {
+  const suggestBtn = document.createElement("button");
+  suggestBtn.type = "button";
+  suggestBtn.className = "secondary";
+  suggestBtn.textContent = "Suggérer via IA";
+  suggestBtn.addEventListener("click", async () => {
+    suggestBtn.disabled = true;
+    suggestBtn.textContent = "Suggestion en cours...";
+    try {
+      const res = await fetch("/api/step-metadata/suggest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ description: step.description }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: res.statusText }));
-        status.textContent = `Erreur: ${err.error}`;
+        throw new Error(err.error);
+      }
+      const suggestion = await res.json();
+      durationInput.value = suggestion.durationMinutes;
+      for (const id of Object.keys(checkboxes)) {
+        checkboxes[id].checked = suggestion.equipmentIds.includes(id);
+      }
+      status.textContent = "Suggestion IA appliquée — vérifie et enregistre.";
+    } catch (err) {
+      status.textContent = `Échec de la suggestion IA: ${err.message}`;
+    } finally {
+      suggestBtn.disabled = false;
+      suggestBtn.textContent = "Suggérer via IA";
+    }
+  });
+
+  const saveBtn = document.createElement("button");
+  saveBtn.type = "button";
+  saveBtn.textContent = "Enregistrer";
+  saveBtn.addEventListener("click", async () => {
+    let payload;
+
+    if (splitMode) {
+      const subSteps = subStepRows.map((r) => r.getData());
+      const invalid = subSteps.find((s) => !s.description || !s.durationMinutes || s.durationMinutes <= 0);
+      if (invalid || subSteps.length === 0) {
+        status.textContent = "Chaque sous-étape a besoin d'une description et d'une durée valide.";
         return;
       }
-      card.classList.add("saved");
-      status.textContent = "Enregistré ✓";
+      payload = { stepId: step.stepId, recipeSlug: step.recipeSlug, subSteps };
+    } else {
+      const durationMinutes = Number(durationInput.value);
+      if (!durationMinutes || durationMinutes <= 0) {
+        status.textContent = "Indique une durée valide avant d'enregistrer.";
+        return;
+      }
+      const equipmentIds = Object.keys(checkboxes).filter((id) => checkboxes[id].checked);
+      payload = { stepId: step.stepId, recipeSlug: step.recipeSlug, durationMinutes, equipmentIds };
+      if (independentCb.checked) payload.dependsOn = [];
+    }
+
+    const res = await fetch("/api/step-metadata", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      status.textContent = `Erreur: ${err.error}`;
+      return;
+    }
+    card.classList.add("saved");
+    status.textContent = "Enregistré ✓";
+  });
 
-    const actions = document.createElement("div");
-    actions.className = "actions";
-    actions.append(suggestBtn, splitToggleBtn, saveBtn);
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  actions.append(suggestBtn, splitToggleBtn, saveBtn);
 
-    card.append(title, desc, simpleFieldsWrap, subStepsWrap, actions, status);
-    missingListEl.append(card);
-  }
+  card.append(title, desc, simpleFieldsWrap, subStepsWrap, actions, status);
+  return card;
 }
 
 function renderSchedule(schedule) {

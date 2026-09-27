@@ -132,7 +132,24 @@ button.secondary { background: var(--border); color: var(--fg); }
 .substep-row .parallel-toggle { display: flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
 .substep-row button { padding: 0.3rem 0.6rem; font-size: 0.85rem; }
 .missing-step.saved { border-color: var(--accent); }
+.missing-step.already-configured { border-color: var(--border); background: color-mix(in srgb, var(--accent) 5%, var(--card)); }
 .missing-step .status { font-size: 0.85rem; color: var(--accent); }
+
+.section-divider { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+.button-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.button-list button { font-weight: 400; }
+
+#review-recipe-detail { margin-top: 1rem; }
+#review-recipe-title { margin-bottom: 0.8rem; }
 
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }

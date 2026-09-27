@@ -46,6 +46,20 @@
         <tbody></tbody>
       </table>
     </section>
+
+    <hr class="section-divider" />
+
+    <section id="recipe-review">
+      <h2>Revoir une recette</h2>
+      <p class="hint">Consulte ou corrige la configuration d'ordonnancement d'une recette (durée, équipement, sous-étapes) indépendamment de toute sélection pour un planning.</p>
+      <input type="search" id="review-recipe-search" placeholder="Rechercher une recette..." />
+      <ul id="review-recipe-list" class="button-list"></ul>
+
+      <div id="review-recipe-detail" hidden>
+        <h3 id="review-recipe-title"></h3>
+        <div id="review-steps-list"></div>
+      </div>
+    </section>
   </main>
 
   <script src="/app.js"></script>

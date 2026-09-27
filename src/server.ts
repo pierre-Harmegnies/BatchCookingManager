@@ -78,6 +78,32 @@ app.get("/api/equipment", async (_req, res) => {
   res.json(equipment);
 });
 
+/**
+ * Détail d'une recette avec l'état de ses métadonnées d'ordonnancement,
+ * indépendamment de toute session de planning — pour revoir/éditer la
+ * configuration d'une recette sans devoir la sélectionner dans un planning.
+ */
+app.get("/api/recipes/:slug/metadata", async (req, res) => {
+  try {
+    const recipe = await fetchRecipeBySlug(req.params.slug);
+    const stepIds = recipe.steps.map((s) => s.id);
+    const metadataById = await getStepMetadata(stepIds);
+
+    const steps = [...recipe.steps]
+      .sort((a, b) => a.order - b.order)
+      .map((step) => ({
+        stepId: step.id,
+        order: step.order,
+        description: step.description,
+        metadata: metadataById[step.id] ?? null,
+      }));
+
+    res.json({ slug: recipe.slug, title: recipe.title, steps });
+  } catch (err) {
+    res.status(502).json({ error: (err as Error).message });
+  }
+});
+
 app.get("/api/planning", async (req, res) => {
   const slugs = parseSlugs(req);
   if (slugs.length === 0) {
