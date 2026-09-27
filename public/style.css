@@ -7,6 +7,13 @@
   --accent: #b5651d;
   --accent-fg: #fff;
   --card: #ffffff;
+
+  /* Palette recette, partagée conceptuellement avec l'export PDF (planningPdf.ts) */
+  --r1: #e07a5f; /* terracotta */
+  --r2: #3d5a80; /* bleu nuit */
+  --r3: #588157; /* vert sauge */
+  --r4: #b5651d; /* ambre */
+  --r5: #6d597a; /* prune */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -18,6 +25,12 @@
     --accent: #d98b3f;
     --accent-fg: #1c1815;
     --card: #262019;
+
+    --r1: #e8967e;
+    --r2: #7c9cc4;
+    --r3: #8bbd88;
+    --r4: #d98b3f;
+    --r5: #a087ad;
   }
 }
 
@@ -29,20 +42,48 @@ body {
   background: var(--bg);
   color: var(--fg);
   padding: 1.5rem;
-  max-width: 900px;
+  max-width: 1000px;
   margin-inline: auto;
 }
 
+header {
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 3px solid transparent;
+  border-image: linear-gradient(90deg, var(--r1), var(--r2), var(--r3), var(--r4)) 1;
+}
 header h1 { margin-bottom: 0.2rem; }
 header p { color: var(--muted); margin-top: 0; }
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 720px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+.grid-2 > section { margin-bottom: 0; }
 
 section {
   background: var(--card);
   border: 1px solid var(--border);
+  border-left: 5px solid var(--section-accent, var(--accent));
   border-radius: 10px;
   padding: 1.2rem 1.5rem;
   margin-bottom: 1.5rem;
 }
+section h2 {
+  color: var(--section-accent, var(--accent));
+  margin-top: 0;
+}
+
+#menu-picker { --section-accent: var(--r2); }
+#recipe-picker { --section-accent: var(--r1); }
+#missing-section { --section-accent: var(--r4); }
+#schedule-section { --section-accent: var(--r3); }
+#recipe-review { --section-accent: var(--r5); }
 
 #recipe-list {
   list-style: none;
@@ -61,6 +102,7 @@ section {
   align-items: center;
 }
 #recipe-list li:last-child { border-bottom: none; }
+#recipe-list li:hover { background: color-mix(in srgb, var(--r1) 8%, transparent); }
 
 .hint { color: var(--muted); font-size: 0.9rem; }
 
@@ -71,6 +113,7 @@ section {
 #menu-list li {
   padding: 0.5rem 0.7rem;
   border: 1px solid var(--border);
+  border-left: 3px solid var(--r2);
   border-radius: 6px;
   margin-bottom: 0.5rem;
   display: flex;
@@ -83,7 +126,7 @@ section {
 #menu-list button { flex-shrink: 0; }
 #menu-list .empty { color: var(--muted); font-style: italic; border: none; padding: 0.3rem 0; }
 
-input[type="search"], input[type="number"] {
+input[type="search"], input[type="number"], input[type="text"] {
   width: 100%;
   padding: 0.5rem;
   margin: 0.5rem 0;
@@ -91,6 +134,10 @@ input[type="search"], input[type="number"] {
   border-radius: 6px;
   background: var(--bg);
   color: var(--fg);
+}
+input[type="search"]:focus, input[type="number"]:focus, input[type="text"]:focus {
+  outline: 2px solid var(--section-accent, var(--accent));
+  outline-offset: 1px;
 }
 
 button {
@@ -101,17 +148,26 @@ button {
   border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
+  transition: transform 0.05s ease, filter 0.15s ease;
 }
+button:hover:not(:disabled) { filter: brightness(1.08); }
+button:active:not(:disabled) { transform: translateY(1px); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
-button.secondary { background: var(--border); color: var(--fg); }
+button.secondary {
+  background: color-mix(in srgb, var(--section-accent, var(--accent)) 14%, var(--card));
+  color: var(--fg);
+  border: 1px solid var(--border);
+  font-weight: 500;
+}
 
 .missing-step {
   border: 1px solid var(--border);
+  border-top: 3px solid var(--r4);
   border-radius: 8px;
   padding: 0.8rem 1rem;
   margin-bottom: 0.8rem;
 }
-.missing-step h4 { margin: 0 0 0.3rem; }
+.missing-step h4 { margin: 0 0 0.3rem; color: var(--r4); }
 .missing-step .desc { color: var(--muted); font-size: 0.9rem; margin-bottom: 0.5rem; }
 .missing-step .equipment-options { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0; }
 .missing-step .equipment-options label { display: flex; align-items: center; gap: 0.3rem; font-size: 0.9rem; }
@@ -131,9 +187,11 @@ button.secondary { background: var(--border); color: var(--fg); }
 .substep-row .equipment-options { margin: 0; }
 .substep-row .parallel-toggle { display: flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
 .substep-row button { padding: 0.3rem 0.6rem; font-size: 0.85rem; }
-.missing-step.saved { border-color: var(--accent); }
-.missing-step.already-configured { border-color: var(--border); background: color-mix(in srgb, var(--accent) 5%, var(--card)); }
-.missing-step .status { font-size: 0.85rem; color: var(--accent); }
+.missing-step.saved { border-color: var(--r3); border-top-color: var(--r3); }
+.missing-step.saved h4 { color: var(--r3); }
+.missing-step.already-configured { border-top-color: var(--r5); background: color-mix(in srgb, var(--r5) 5%, var(--card)); }
+.missing-step.already-configured h4 { color: var(--r5); }
+.missing-step .status { font-size: 0.85rem; color: var(--accent); font-weight: 600; }
 
 .section-divider { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
 
@@ -149,19 +207,40 @@ button.secondary { background: var(--border); color: var(--fg); }
 .button-list button { font-weight: 400; }
 
 #review-recipe-detail { margin-top: 1rem; }
-#review-recipe-title { margin-bottom: 0.8rem; }
+#review-recipe-title { margin-bottom: 0.8rem; color: var(--r5); }
 
 table { width: 100%; border-collapse: collapse; }
-th, td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+th, td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
 th { color: var(--muted); font-weight: 600; }
+tbody tr:hover { background: color-mix(in srgb, var(--r3) 6%, transparent); }
+tbody tr:nth-child(even) { background: color-mix(in srgb, var(--border) 25%, transparent); }
+
+.recipe-name {
+  font-weight: 700;
+  padding-left: 0.6rem;
+  border-left: 4px solid var(--recipe-color, var(--accent));
+}
 
 .tag {
   display: inline-block;
-  background: var(--border);
-  border-radius: 4px;
-  padding: 0.1rem 0.4rem;
-  font-size: 0.8rem;
-  margin-right: 0.2rem;
+  background: color-mix(in srgb, var(--tag-color, var(--muted)) 20%, var(--card));
+  color: var(--tag-color, var(--fg));
+  border: 1px solid color-mix(in srgb, var(--tag-color, var(--muted)) 40%, transparent);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
+
+#makespan {
+  display: inline-block;
+  background: color-mix(in srgb, var(--r3) 18%, var(--card));
+  color: var(--r3);
+  font-weight: 700;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  margin-bottom: 0.8rem;
 }
 
 #selection-count { color: var(--muted); font-size: 0.9rem; }

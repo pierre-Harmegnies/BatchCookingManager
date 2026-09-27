@@ -177,6 +177,7 @@ async function loadRecipeReview(slug) {
   const data = await res.json();
 
   reviewTitleEl.textContent = data.title;
+  reviewTitleEl.style.color = `var(${colorVarForKey(data.title)})`;
   reviewStepsEl.innerHTML = "";
   for (const step of data.steps) {
     const stepForCard = {
@@ -438,32 +439,53 @@ function createStepEditorCard(step, existingMetadata) {
   return card;
 }
 
+// Palette partagée avec l'export PDF (planningPdf.ts) : chaque recette/équipement
+// se voit attribuer une couleur stable (par hash du nom), pour repérer d'un
+// coup d'œil qui fait quoi dans le tableau du planning.
+const COLOR_VARS = ["--r1", "--r2", "--r3", "--r4", "--r5"];
+
+function colorVarForKey(key) {
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  return COLOR_VARS[hash % COLOR_VARS.length];
+}
+
 function renderSchedule(schedule) {
   scheduleTableBody.innerHTML = "";
   for (const step of schedule.steps) {
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${formatMinutes(step.startMinutes)}</td>
-      <td>${formatMinutes(step.endMinutes)}</td>
-      <td>${escapeHtml(step.recipeTitle)}</td>
-      <td>${escapeHtml(step.description)}</td>
-      <td>${step.equipmentIds.map((id) => `<span class="tag">${escapeHtml(id)}</span>`).join("")}</td>
-    `;
+
+    const recipeTd = document.createElement("td");
+    recipeTd.className = "recipe-name";
+    recipeTd.style.setProperty("--recipe-color", `var(${colorVarForKey(step.recipeTitle)})`);
+    recipeTd.textContent = step.recipeTitle;
+
+    const equipmentTd = document.createElement("td");
+    for (const id of step.equipmentIds) {
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.style.setProperty("--tag-color", `var(${colorVarForKey(id)})`);
+      tag.textContent = id;
+      equipmentTd.append(tag);
+    }
+
+    const startTd = document.createElement("td");
+    startTd.textContent = formatMinutes(step.startMinutes);
+    const endTd = document.createElement("td");
+    endTd.textContent = formatMinutes(step.endMinutes);
+    const descTd = document.createElement("td");
+    descTd.textContent = step.description;
+
+    tr.append(startTd, endTd, recipeTd, descTd, equipmentTd);
     scheduleTableBody.append(tr);
   }
-  makespanEl.textContent = `Temps total : ${formatMinutes(schedule.makespanMinutes)}`;
+  makespanEl.textContent = `⏱ Temps total : ${formatMinutes(schedule.makespanMinutes)}`;
 }
 
 function formatMinutes(minutes) {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return `${h}h${String(m).padStart(2, "0")}`;
-}
-
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
 }
 
 init();
