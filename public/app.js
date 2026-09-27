@@ -176,6 +176,99 @@ function renderMissingSteps(missingSteps) {
       ),
     );
 
+    const simpleFieldsWrap = document.createElement("div");
+    simpleFieldsWrap.append(durationInput, equipmentWrap, independentLabel);
+
+    const subStepsWrap = document.createElement("div");
+    subStepsWrap.className = "substeps-wrap";
+    subStepsWrap.hidden = true;
+    const subStepRows = [];
+    let subStepCounter = 0;
+
+    function addSubStepRow(prefill) {
+      const rowIndex = subStepRows.length;
+      const row = document.createElement("div");
+      row.className = "substep-row";
+
+      const descInput = document.createElement("input");
+      descInput.type = "text";
+      descInput.placeholder = "Description de la sous-étape";
+      descInput.value = prefill?.description ?? "";
+
+      const durInput = document.createElement("input");
+      durInput.type = "number";
+      durInput.min = "0";
+      durInput.placeholder = "Durée (min)";
+
+      const eqWrap = document.createElement("div");
+      eqWrap.className = "equipment-options";
+      const eqBoxes = {};
+      for (const eq of equipmentList) {
+        const label = document.createElement("label");
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.value = eq.id;
+        eqBoxes[eq.id] = cb;
+        label.append(cb, document.createTextNode(eq.name));
+        eqWrap.append(label);
+      }
+
+      const parallelLabel = document.createElement("label");
+      parallelLabel.className = "parallel-toggle";
+      const parallelCb = document.createElement("input");
+      parallelCb.type = "checkbox";
+      if (rowIndex === 0) parallelCb.disabled = true;
+      parallelLabel.append(parallelCb, document.createTextNode(" en parallèle de la précédente"));
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "secondary";
+      removeBtn.textContent = "Retirer";
+      removeBtn.addEventListener("click", () => {
+        row.remove();
+        subStepRows.splice(subStepRows.indexOf(rowData), 1);
+      });
+
+      row.append(descInput, durInput, eqWrap, parallelLabel, removeBtn);
+      subStepsWrap.insertBefore(row, addSubStepBtn);
+
+      const rowData = {
+        id: `sub-${++subStepCounter}`,
+        getData: () => ({
+          id: rowData.id,
+          description: descInput.value.trim(),
+          durationMinutes: Number(durInput.value),
+          equipmentIds: Object.keys(eqBoxes).filter((id) => eqBoxes[id].checked),
+          parallelWithPrevious: parallelCb.checked,
+        }),
+      };
+      subStepRows.push(rowData);
+    }
+
+    const addSubStepBtn = document.createElement("button");
+    addSubStepBtn.type = "button";
+    addSubStepBtn.className = "secondary";
+    addSubStepBtn.textContent = "+ Ajouter une sous-étape";
+    addSubStepBtn.addEventListener("click", () => addSubStepRow());
+    subStepsWrap.append(addSubStepBtn);
+
+    let splitMode = false;
+    const splitToggleBtn = document.createElement("button");
+    splitToggleBtn.type = "button";
+    splitToggleBtn.className = "secondary";
+    splitToggleBtn.textContent = "Diviser en sous-étapes";
+    splitToggleBtn.title = "Utile si cette étape MaCuisine mélange plusieurs actions distinctes (ex: \"poêler les haricots ET cuire les pâtes\")";
+    splitToggleBtn.addEventListener("click", () => {
+      splitMode = !splitMode;
+      simpleFieldsWrap.hidden = splitMode;
+      subStepsWrap.hidden = !splitMode;
+      splitToggleBtn.textContent = splitMode ? "Revenir à une seule étape" : "Diviser en sous-étapes";
+      if (splitMode && subStepRows.length === 0) {
+        addSubStepRow({ description: step.description });
+        addSubStepRow();
+      }
+    });
+
     const status = document.createElement("div");
     status.className = "status";
 
@@ -214,14 +307,27 @@ function renderMissingSteps(missingSteps) {
     saveBtn.type = "button";
     saveBtn.textContent = "Enregistrer";
     saveBtn.addEventListener("click", async () => {
-      const durationMinutes = Number(durationInput.value);
-      if (!durationMinutes || durationMinutes <= 0) {
-        status.textContent = "Indique une durée valide avant d'enregistrer.";
-        return;
+      let payload;
+
+      if (splitMode) {
+        const subSteps = subStepRows.map((r) => r.getData());
+        const invalid = subSteps.find((s) => !s.description || !s.durationMinutes || s.durationMinutes <= 0);
+        if (invalid || subSteps.length === 0) {
+          status.textContent = "Chaque sous-étape a besoin d'une description et d'une durée valide.";
+          return;
+        }
+        payload = { stepId: step.stepId, recipeSlug: step.recipeSlug, subSteps };
+      } else {
+        const durationMinutes = Number(durationInput.value);
+        if (!durationMinutes || durationMinutes <= 0) {
+          status.textContent = "Indique une durée valide avant d'enregistrer.";
+          return;
+        }
+        const equipmentIds = Object.keys(checkboxes).filter((id) => checkboxes[id].checked);
+        payload = { stepId: step.stepId, recipeSlug: step.recipeSlug, durationMinutes, equipmentIds };
+        if (independentCb.checked) payload.dependsOn = [];
       }
-      const equipmentIds = Object.keys(checkboxes).filter((id) => checkboxes[id].checked);
-      const payload = { stepId: step.stepId, recipeSlug: step.recipeSlug, durationMinutes, equipmentIds };
-      if (independentCb.checked) payload.dependsOn = [];
+
       const res = await fetch("/api/step-metadata", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -238,9 +344,9 @@ function renderMissingSteps(missingSteps) {
 
     const actions = document.createElement("div");
     actions.className = "actions";
-    actions.append(suggestBtn, saveBtn);
+    actions.append(suggestBtn, splitToggleBtn, saveBtn);
 
-    card.append(title, desc, durationInput, equipmentWrap, independentLabel, actions, status);
+    card.append(title, desc, simpleFieldsWrap, subStepsWrap, actions, status);
     missingListEl.append(card);
   }
 }

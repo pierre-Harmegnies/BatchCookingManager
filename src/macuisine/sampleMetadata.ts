@@ -14,6 +14,21 @@ export const equipment: Equipment[] = [
   { id: "cuisinier", name: "Cuisinier (vous)", capacity: 1 },
 ];
 
+export interface SubStepMetadata {
+  /** Unique seulement au sein du step parent (ex: "a", "b", "c"). */
+  id: string;
+  description: string;
+  durationMinutes: number;
+  equipmentIds: string[];
+  /**
+   * Si vrai, cette sous-étape se fait en parallèle de la précédente (même
+   * dépendance qu'elle) plutôt qu'après elle. Permet de représenter une étape
+   * MaCuisine trop groupée (ex: "poêler les haricots ET cuire les pâtes")
+   * comme deux actions distinctes et parallélisables pour l'ordonnancement.
+   */
+  parallelWithPrevious?: boolean;
+}
+
 export interface StepMetadata {
   durationMinutes: number;
   /** Équipements requis, y compris `cuisinier` si l'étape demande une présence active. */
@@ -23,6 +38,14 @@ export interface StepMetadata {
    * défaut (étape précédente de la même recette) est utilisée par `toDomainRecipe`.
    */
   dependsOn?: string[];
+  /**
+   * Si renseigné (non vide), cette étape MaCuisine est raffinée en plusieurs
+   * sous-étapes propres à BatchCookingManager pour l'ordonnancement — la
+   * recette originale dans MaCuisine n'est pas modifiée. `durationMinutes` et
+   * `equipmentIds` ci-dessus sont alors ignorés par le scheduler au profit des
+   * sous-étapes. Voir `toDomainRecipe` pour la logique d'éclatement/rebranchement.
+   */
+  subSteps?: SubStepMetadata[];
 }
 
 /**

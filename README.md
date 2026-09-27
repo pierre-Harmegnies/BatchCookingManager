@@ -8,6 +8,12 @@ Voir le cadrage complet dans `/home/developer/.claude/plans/dans-home-developer-
 
 `src/scheduler.ts` implémente l'heuristique d'ordonnancement (Serial Schedule Generation Scheme), avec un équipement virtuel `cuisinier` (capacité 1) représentant le fait qu'une seule personne cuisine à la fois.
 
+## Raffinement des étapes (sous-étapes)
+
+Une étape MaCuisine trop groupée (ex: "poêler les haricots ET cuire les pâtes") peut être divisée en plusieurs sous-étapes propres à BatchCookingManager, **sans modifier la recette originale dans MaCuisine**. Dans l'écran de complétion, bouton "Diviser en sous-étapes" → liste dynamique de sous-étapes (description, durée, équipement, case "en parallèle de la précédente").
+
+Logique de dépendances (`computeSubStepWaves` dans `src/macuisine/toDomain.ts`) : les sous-étapes consécutives marquées "parallèle" forment une même "vague" (même dépendance, exécutables en même temps) ; une sous-étape normale démarre une nouvelle vague qui dépend de **toute** la vague précédente. La première vague hérite de la dépendance externe de l'étape d'origine ; les étapes qui dépendaient de l'étape d'origine sont automatiquement rebranchées sur la **dernière** vague (pas juste la première sous-étape) — testé de bout en bout sur une vraie recette (Cookeo) et validé unitairement sur un cas de fusion parallèle.
+
 ## Menus MaCuisine
 
 `GET /api/menus` (section "1. Charger un menu de la semaine" dans l'UI) liste les menus déjà planifiés dans MaCuisine et en extrait les recettes distinctes (`extractRecipesFromMenu` dans `src/macuisine/client.ts`, tous jours/repas confondus). Cliquer "Charger" présélectionne ces recettes dans le sélecteur libre ci-dessous (max 4 ; au-delà, seules les 4 premières sont cochées, à ajuster manuellement) — la sélection libre reste disponible en complément, elle n'est pas remplacée.

@@ -123,9 +123,24 @@ app.get("/api/planning/pdf", async (req, res) => {
 });
 
 app.post("/api/step-metadata", async (req, res) => {
-  const { stepId, recipeSlug, durationMinutes, equipmentIds, dependsOn } = req.body ?? {};
-  if (!stepId || !recipeSlug || typeof durationMinutes !== "number" || !Array.isArray(equipmentIds)) {
-    return res.status(400).json({ error: "Champs requis: stepId, recipeSlug, durationMinutes, equipmentIds[]." });
+  const { stepId, recipeSlug, durationMinutes, equipmentIds, dependsOn, subSteps } = req.body ?? {};
+  if (!stepId || !recipeSlug) {
+    return res.status(400).json({ error: "Champs requis: stepId, recipeSlug." });
+  }
+
+  if (Array.isArray(subSteps) && subSteps.length > 0) {
+    const valid = subSteps.every(
+      (s) => s && typeof s.id === "string" && typeof s.durationMinutes === "number" && Array.isArray(s.equipmentIds),
+    );
+    if (!valid) {
+      return res.status(400).json({ error: "subSteps invalide : chaque sous-étape requiert id, durationMinutes, equipmentIds[]." });
+    }
+    await upsertStepMetadata(stepId, recipeSlug, { durationMinutes: 0, equipmentIds: [], subSteps });
+    return res.status(204).end();
+  }
+
+  if (typeof durationMinutes !== "number" || !Array.isArray(equipmentIds)) {
+    return res.status(400).json({ error: "Champs requis: durationMinutes, equipmentIds[] (ou subSteps[])." });
   }
   await upsertStepMetadata(stepId, recipeSlug, { durationMinutes, equipmentIds, dependsOn });
   res.status(204).end();

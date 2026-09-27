@@ -1,4 +1,4 @@
-import type { StepMetadata } from "../macuisine/sampleMetadata.js";
+import type { StepMetadata, SubStepMetadata } from "../macuisine/sampleMetadata.js";
 import { getDb } from "./db.js";
 
 interface StepMetadataDoc {
@@ -7,6 +7,7 @@ interface StepMetadataDoc {
   durationMinutes: number;
   equipmentIds: string[];
   dependsOn?: string[];
+  subSteps?: SubStepMetadata[];
 }
 
 export async function getStepMetadata(stepIds: string[]): Promise<Record<string, StepMetadata>> {
@@ -23,6 +24,7 @@ export async function getStepMetadata(stepIds: string[]): Promise<Record<string,
       durationMinutes: doc.durationMinutes,
       equipmentIds: doc.equipmentIds,
       dependsOn: doc.dependsOn,
+      subSteps: doc.subSteps,
     };
   }
   return result;
@@ -42,6 +44,7 @@ export async function upsertStepMetadata(
         durationMinutes: metadata.durationMinutes,
         equipmentIds: metadata.equipmentIds,
         dependsOn: metadata.dependsOn,
+        subSteps: metadata.subSteps,
       },
     },
     { upsert: true },
