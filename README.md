@@ -18,6 +18,10 @@ Logique de dépendances (`computeSubStepWaves` dans `src/macuisine/toDomain.ts`)
 
 Section "Revoir une recette" en bas de page : liste toutes les recettes MaCuisine, affiche l'état de configuration de chaque étape (`GET /api/recipes/:slug/metadata`) et permet de la corriger via la même carte d'édition que l'écran de complétion (durée, équipement, dépendance, sous-étapes) — sans avoir besoin de la sélectionner dans un planning. La logique de carte a été extraite dans `createStepEditorCard(step, existingMetadata)` (`public/app.js`), réutilisée par les deux écrans, avec pré-remplissage des champs quand une configuration existe déjà.
 
+## Identité visuelle
+
+Alignée sur MaCuisine (`frontend/tailwind.config.js`, `Layout.tsx`, `RecipeCard.tsx`) : police Inter, fond stone-200, accent orange "cuisine" (#ee7b12), cartes blanches arrondies, icônes SVG inline façon lucide-react (pas d'emoji), pastilles de catégorie douces. La palette recette/équipement (web + PDF) reprend les teintes sky/amber/rose/teal/violet de MaCuisine.
+
 Bouton "💡 Suggestion IA pour toute la recette" : un seul appel IA groupé (`POST /api/recipes/:slug/suggest-all`, `suggestStepMetadataBatch`) pré-remplit toutes les étapes d'un coup, au lieu d'un appel par étape — même garantie que la suggestion individuelle (jamais appliqué automatiquement, chaque étape doit être vérifiée puis enregistrée séparément). Modèle utilisé pour toute suggestion IA (individuelle ou groupée) : **`claude-haiku-4-5-20251001`** plutôt que Sonnet — tâche d'extraction structurée simple, Haiku est nettement moins cher et suffisant vu que le résultat est toujours revalidé manuellement.
 
 ## Menus MaCuisine
