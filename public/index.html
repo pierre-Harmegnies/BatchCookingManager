@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>BatchCookingManager</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <h1>BatchCookingManager</h1>
+    <p>Choisis jusqu'à 4 menus de la semaine, on te génère le pas-à-pas de préparation.</p>
+  </header>
+
+  <main>
+    <section id="menu-picker">
+      <h2>1. Charger un menu de la semaine (MaCuisine)</h2>
+      <p class="hint">Choisis un menu déjà planifié dans MaCuisine : ses recettes seront présélectionnées ci-dessous (max 4 — au-delà, seules les 4 premières sont cochées, à ajuster manuellement).</p>
+      <ul id="menu-list"></ul>
+    </section>
+
+    <section id="recipe-picker">
+      <h2>2. Choisir les menus (max 4)</h2>
+      <input type="search" id="recipe-search" placeholder="Rechercher une recette..." />
+      <ul id="recipe-list"></ul>
+      <button id="generate-btn" disabled>Générer le planning</button>
+      <p id="selection-count">0 / 4 sélectionnée(s)</p>
+    </section>
+
+    <section id="missing-section" hidden>
+      <h2>3. Compléter les étapes manquantes</h2>
+      <p>Ces étapes n'ont pas encore de durée/équipement renseignés — impossible de générer un planning fiable sans ça.</p>
+      <div id="missing-list"></div>
+      <button id="retry-btn">Regénérer le planning</button>
+    </section>
+
+    <section id="schedule-section" hidden>
+      <h2>Planning de préparation</h2>
+      <p id="makespan"></p>
+      <a id="pdf-link" href="#" download>
+        <button type="button">Télécharger en PDF</button>
+      </a>
+      <table id="schedule-table">
+        <thead>
+          <tr><th>Début</th><th>Fin</th><th>Recette</th><th>Étape</th><th>Équipement</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
