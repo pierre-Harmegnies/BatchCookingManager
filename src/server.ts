@@ -9,9 +9,9 @@ import { toDomainRecipe, type MissingStep } from "./macuisine/toDomain.js";
 import { suggestStepMetadataBatch } from "./ai/suggestStepMetadata.js";
 import { listEquipment } from "./store/equipmentStore.js";
 import { getStepMetadata, upsertStepMetadata } from "./store/stepMetadataStore.js";
-import { createSession, listSessions, getSession, deleteSession } from "./store/sessionStore.js";
+import { createSession, listSessions, getSession, updateSessionSchedule, deleteSession } from "./store/sessionStore.js";
 import { generatePlanningPdf } from "./pdf/planningPdf.js";
-import type { Schedule } from "./types.js";
+import type { Schedule, ScheduledStep } from "./types.js";
 
 function parseSlugs(req: import("express").Request): string[] {
   const slugsParam = req.query.slugs;
@@ -258,6 +258,51 @@ app.get("/api/sessions/:id/pdf", async (req, res) => {
   res.setHeader("Content-Disposition", `attachment; filename="planning-${req.params.id}.pdf"`);
   const doc = generatePlanningPdf(session.schedule, session.recipeTitles);
   doc.pipe(res);
+});
+
+/**
+ * Édition du planning d'une session déjà sauvegardée (ajout/modif/suppression
+ * d'étapes). Purement local à cette session — ne touche ni step_metadata ni
+ * MaCuisine, donc aucune influence sur les prochaines sessions générées.
+ */
+app.put("/api/sessions/:id/schedule", async (req, res) => {
+  const { steps } = req.body ?? {};
+  if (!Array.isArray(steps)) {
+    return res.status(400).json({ error: "Champ requis : steps[]." });
+  }
+  const valid = steps.every(
+    (s) =>
+      s &&
+      typeof s.recipeTitle === "string" &&
+      typeof s.description === "string" &&
+      typeof s.startMinutes === "number" &&
+      typeof s.endMinutes === "number" &&
+      s.endMinutes >= s.startMinutes &&
+      Array.isArray(s.equipmentIds),
+  );
+  if (!valid) {
+    return res.status(400).json({ error: "Étape invalide : recipeTitle, description, startMinutes, endMinutes, equipmentIds[] requis." });
+  }
+
+  const sortedSteps: ScheduledStep[] = [...steps]
+    .sort((a, b) => a.startMinutes - b.startMinutes)
+    .map((s, i) => ({
+      stepId: s.stepId ?? `custom-${i}-${Date.now()}`,
+      recipeId: s.recipeId ?? "custom",
+      recipeTitle: s.recipeTitle,
+      description: s.description,
+      startMinutes: s.startMinutes,
+      endMinutes: s.endMinutes,
+      equipmentIds: s.equipmentIds,
+    }));
+  const makespanMinutes = sortedSteps.reduce((max, s) => Math.max(max, s.endMinutes), 0);
+  const schedule: Schedule = { steps: sortedSteps, makespanMinutes };
+
+  const session = await updateSessionSchedule(req.params.id, schedule);
+  if (!session) {
+    return res.status(404).json({ error: "Session introuvable." });
+  }
+  res.json(session);
 });
 
 app.delete("/api/sessions/:id", async (req, res) => {

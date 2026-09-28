@@ -336,6 +336,26 @@ button.secondary:hover:not(:disabled) { color: var(--cuisine-600); border-color:
 .substep-row .parallel-toggle { display: flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
 .substep-row button { padding: 0.3rem 0.6rem; font-size: 0.85rem; flex-shrink: 0; }
 
+#session-edit-list { margin-top: 0.8rem; }
+.edit-step-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  padding: 0.8rem 1rem;
+  margin-bottom: 0.6rem;
+}
+.edit-step-row-top { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.edit-step-row-top input[type="number"] { width: 90px; flex-shrink: 0; margin: 0; }
+.edit-step-row-top input[data-role="recipe"] { width: 220px; flex-shrink: 0; margin: 0; }
+.edit-step-row-top input[data-role="description"] { flex: 1; min-width: 200px; margin: 0; }
+.edit-step-row-bottom { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; }
+.edit-step-row .equipment-options { margin: 0; }
+.edit-step-row button { flex-shrink: 0; padding: 0.3rem 0.6rem; font-size: 0.85rem; }
+.edit-field-label { font-size: 0.72rem; color: var(--muted-light); display: block; margin-bottom: 0.1rem; }
+
 .missing-step.saved::before { background: linear-gradient(to right, var(--h-teal), color-mix(in srgb, var(--h-teal) 60%, white)); }
 .missing-step.already-configured::before { background: linear-gradient(to right, var(--h-violet), color-mix(in srgb, var(--h-violet) 60%, white)); }
 .missing-step .status { font-size: 0.85rem; color: var(--cuisine-600); font-weight: 600; margin-top: 0.4rem; }

@@ -76,6 +76,21 @@ export async function getSession(id: string): Promise<SessionDetail | null> {
   return doc ? toDetail(doc) : null;
 }
 
+/**
+ * Met à jour le planning d'une session déjà sauvegardée (ajout/modif/
+ * suppression d'étapes) — édition purement locale à cette session : elle ne
+ * touche ni les métadonnées d'ordonnancement des recettes (`step_metadata`)
+ * ni MaCuisine, donc aucune influence sur les prochaines sessions générées.
+ */
+export async function updateSessionSchedule(id: string, schedule: Schedule): Promise<SessionDetail | null> {
+  if (!ObjectId.isValid(id)) return null;
+  const db = await getDb();
+  const result = await db
+    .collection<SessionDoc>("sessions")
+    .findOneAndUpdate({ _id: new ObjectId(id) }, { $set: { schedule } }, { returnDocument: "after" });
+  return result ? toDetail(result) : null;
+}
+
 export async function deleteSession(id: string): Promise<boolean> {
   if (!ObjectId.isValid(id)) return false;
   const db = await getDb();
