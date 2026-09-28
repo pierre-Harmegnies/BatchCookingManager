@@ -6,7 +6,7 @@ import express from "express";
 import { scheduleRecipes } from "./scheduler.js";
 import { fetchRecipeBySlug, fetchRecipeList, fetchMenuList, extractRecipesFromMenu } from "./macuisine/client.js";
 import { toDomainRecipe, type MissingStep } from "./macuisine/toDomain.js";
-import { suggestStepMetadata, suggestStepMetadataBatch } from "./ai/suggestStepMetadata.js";
+import { suggestStepMetadataBatch } from "./ai/suggestStepMetadata.js";
 import { listEquipment } from "./store/equipmentStore.js";
 import { getStepMetadata, upsertStepMetadata } from "./store/stepMetadataStore.js";
 import { createSession, listSessions, getSession, deleteSession } from "./store/sessionStore.js";
@@ -265,20 +265,6 @@ app.delete("/api/sessions/:id", async (req, res) => {
     return res.status(404).json({ error: "Session introuvable." });
   }
   res.status(204).end();
-});
-
-app.post("/api/step-metadata/suggest", async (req, res) => {
-  const { description } = req.body ?? {};
-  if (!description) {
-    return res.status(400).json({ error: "Champ requis: description." });
-  }
-  try {
-    const equipment = await listEquipment();
-    const suggestion = await suggestStepMetadata(description, equipment);
-    res.json(suggestion);
-  } catch (err) {
-    res.status(502).json({ error: (err as Error).message });
-  }
 });
 
 const port = Number(process.env.PORT ?? 4000);

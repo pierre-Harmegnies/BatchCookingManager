@@ -73,8 +73,7 @@ async function loadRecipeReview(slug) {
 suggestAllBtn.addEventListener("click", async () => {
   if (!currentReviewSlug) return;
   suggestAllBtn.disabled = true;
-  suggestAllBtn.textContent = "Suggestion en cours pour toute la recette...";
-  suggestAllStatusEl.textContent = "";
+  suggestAllStatusEl.textContent = "Suggestion en cours pour toute la recette...";
   try {
     const res = await fetch(`/api/recipes/${encodeURIComponent(currentReviewSlug)}/suggest-all`, {
       method: "POST",
@@ -103,7 +102,6 @@ suggestAllBtn.addEventListener("click", async () => {
     suggestAllStatusEl.textContent = `Échec de la suggestion IA groupée : ${err.message}`;
   } finally {
     suggestAllBtn.disabled = false;
-    suggestAllBtn.textContent = "💡 Suggestion IA pour toute la recette";
   }
 });
 

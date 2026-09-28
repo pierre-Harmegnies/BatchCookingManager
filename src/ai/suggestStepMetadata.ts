@@ -86,61 +86,14 @@ function fromRaw(raw: RawSuggestion): StepSuggestion {
 }
 
 /**
- * Suggestion IA pour une étape de recette, à partir de sa description :
- * durée + équipement (cas simple), ou découpage en sous-étapes logiques si
- * l'étape regroupe plusieurs actions distinctes. Toujours déclenchée
- * explicitement par l'utilisateur (bouton dédié côté UI) — jamais
- * automatique — et le résultat n'est qu'une proposition : il doit être
- * validé/corrigé manuellement avant d'être enregistré (voir POST
- * /api/step-metadata).
- */
-export async function suggestStepMetadata(
-  description: string,
-  availableEquipment: { id: string; name: string }[],
-): Promise<StepSuggestion> {
-  const client = getClient();
-  const equipmentList = buildEquipmentList(availableEquipment);
-
-  const prompt = `Voici une étape d'une recette de cuisine :
-"""
-${description}
-"""
-
-Équipements disponibles (utilise uniquement ces ids, celui qui correspond le mieux si besoin, ou aucun) :
-${equipmentList}
-
-${EQUIPMENT_RESERVATION_INSTRUCTIONS}
-
-${SPLIT_INSTRUCTIONS}
-
-Retourne UNIQUEMENT un JSON, sans markdown ni explication, selon l'un de ces deux formats :
-
-Pas de découpage :
-{"split": false, "duration_minutes": <entier>, "equipment_ids": [<ids>]}
-
-Découpage (au moins 2 sous-étapes) :
-{"split": true, "sub_steps": [{"description": "...", "duration_minutes": <entier>, "equipment_ids": [<ids>], "parallel_with_previous": <bool>}, ...]}`;
-
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 700,
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  const block = response.content[0];
-  if (block.type !== "text") {
-    throw new Error("Réponse IA inattendue (pas de texte).");
-  }
-
-  return fromRaw(parseJsonResponse<RawSuggestion>(block.text));
-}
-
-/**
- * Suggestion IA pour TOUTES les étapes d'une recette en un seul appel (au
- * lieu d'un appel par étape) — même principe et mêmes garanties que
- * `suggestStepMetadata` (découpage possible, jamais appliqué automatiquement,
- * validation manuelle requise), mais un seul aller-retour à l'API pour
- * limiter le coût lors d'une revue complète de recette.
+ * Suggestion IA pour TOUTES les étapes d'une recette en un seul appel.
+ * Sciemment la SEULE façon de déclencher une suggestion (pas de suggestion
+ * étape par étape) : voir toutes les étapes de la recette d'un coup permet au
+ * modèle de repérer les réservations d'équipement implicites (ex: un Cookeo
+ * encore occupé par une cuisson lancée plus tôt), ce qu'une suggestion
+ * isolée par étape ne peut pas faire de façon fiable. Un seul aller-retour à
+ * l'API limite aussi le coût. Jamais appliqué automatiquement — validation
+ * manuelle requise avant enregistrement (voir POST /api/step-metadata).
  */
 export async function suggestStepMetadataBatch(
   steps: { stepId: string; description: string }[],

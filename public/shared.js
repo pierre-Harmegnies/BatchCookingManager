@@ -310,32 +310,6 @@ export function createStepEditorCard(step, existingMetadata, equipmentList) {
     status.textContent = statusText ?? "Suggestion IA appliquée — vérifie et enregistre.";
   }
 
-  const suggestBtn = document.createElement("button");
-  suggestBtn.type = "button";
-  suggestBtn.className = "secondary";
-  suggestBtn.textContent = "Suggérer via IA";
-  suggestBtn.addEventListener("click", async () => {
-    suggestBtn.disabled = true;
-    suggestBtn.textContent = "Suggestion en cours...";
-    try {
-      const res = await fetch("/api/step-metadata/suggest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description: step.description }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(err.error);
-      }
-      applySuggestion(await res.json());
-    } catch (err) {
-      status.textContent = `Échec de la suggestion IA: ${err.message}`;
-    } finally {
-      suggestBtn.disabled = false;
-      suggestBtn.textContent = "Suggérer via IA";
-    }
-  });
-
   const saveBtn = document.createElement("button");
   saveBtn.type = "button";
   saveBtn.textContent = "Enregistrer";
@@ -377,7 +351,7 @@ export function createStepEditorCard(step, existingMetadata, equipmentList) {
 
   const actions = document.createElement("div");
   actions.className = "actions";
-  actions.append(suggestBtn, splitToggleBtn, saveBtn);
+  actions.append(splitToggleBtn, saveBtn);
 
   card.append(title, desc, simpleFieldsWrap, subStepsWrap, actions, status);
   return { element: card, stepId: step.stepId, applySuggestion };

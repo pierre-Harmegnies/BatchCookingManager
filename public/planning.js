@@ -21,7 +21,11 @@ const makespanEl = document.getElementById("makespan");
 const sessionNameInput = document.getElementById("session-name-input");
 const saveSessionBtn = document.getElementById("save-session-btn");
 const saveSessionStatusEl = document.getElementById("save-session-status");
+const suggestMissingBtn = document.getElementById("suggest-missing-btn");
+const suggestMissingStatusEl = document.getElementById("suggest-missing-status");
 let currentSlugs = [];
+let currentMissingCards = [];
+let currentMissingSteps = [];
 
 async function init() {
   const [recipesRes, equipment, menusRes] = await Promise.all([
@@ -133,9 +137,13 @@ async function loadPlanning() {
 
   if (data.missingSteps.length > 0) {
     missingListEl.innerHTML = "";
-    for (const step of data.missingSteps) {
-      missingListEl.append(createStepEditorCard(step, null, equipmentList).element);
-    }
+    suggestMissingStatusEl.textContent = "";
+    currentMissingSteps = data.missingSteps;
+    currentMissingCards = data.missingSteps.map((step) => {
+      const card = createStepEditorCard(step, null, equipmentList);
+      missingListEl.append(card.element);
+      return card;
+    });
     missingSectionEl.hidden = false;
     scheduleSectionEl.hidden = true;
   } else {
@@ -147,6 +155,41 @@ async function loadPlanning() {
     scheduleSectionEl.hidden = false;
   }
 }
+
+suggestMissingBtn.addEventListener("click", async () => {
+  if (currentMissingSteps.length === 0) return;
+  suggestMissingBtn.disabled = true;
+  suggestMissingStatusEl.textContent = "Suggestion en cours...";
+  try {
+    // Un appel par recette (pas par étape) : la suggestion groupée voit toute
+    // la recette, ce qui lui permet de repérer les réservations d'équipement
+    // implicites (ex: un appareil encore occupé par une cuisson précédente).
+    const slugsInvolved = [...new Set(currentMissingSteps.map((s) => s.recipeSlug))];
+    let appliedCount = 0;
+
+    for (const slug of slugsInvolved) {
+      const res = await fetch(`/api/recipes/${encodeURIComponent(slug)}/suggest-all`, { method: "POST" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(err.error);
+      }
+      const { suggestions } = await res.json();
+      for (const card of currentMissingCards) {
+        const suggestion = suggestions[card.stepId];
+        if (suggestion) {
+          card.applySuggestion(suggestion);
+          appliedCount++;
+        }
+      }
+    }
+
+    suggestMissingStatusEl.textContent = `Suggestions appliquées pour ${appliedCount} étape(s) — vérifie chaque étape avant d'enregistrer.`;
+  } catch (err) {
+    suggestMissingStatusEl.textContent = `Échec de la suggestion IA : ${err.message}`;
+  } finally {
+    suggestMissingBtn.disabled = false;
+  }
+});
 
 saveSessionBtn.addEventListener("click", async () => {
   if (currentSlugs.length === 0) return;
