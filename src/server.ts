@@ -128,6 +128,7 @@ app.post("/api/recipes/:slug/suggest-all", async (req, res) => {
     const suggestions = await suggestStepMetadataBatch(
       recipe.steps.map((s) => ({ stepId: s.id, description: s.description })),
       equipment,
+      recipe.title,
     );
     res.json({ suggestions });
   } catch (err) {

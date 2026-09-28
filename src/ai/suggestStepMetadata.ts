@@ -98,20 +98,24 @@ function fromRaw(raw: RawSuggestion): StepSuggestion {
 export async function suggestStepMetadataBatch(
   steps: { stepId: string; description: string }[],
   availableEquipment: { id: string; name: string }[],
+  recipeTitle?: string,
 ): Promise<Record<string, StepSuggestion>> {
   if (steps.length === 0) return {};
 
   const client = getClient();
   const equipmentList = buildEquipmentList(availableEquipment);
   const stepsList = steps.map((s, i) => `${i}. """${s.description}"""`).join("\n");
+  const titleLine = recipeTitle ? `Titre de la recette : """${recipeTitle}"""\n\n` : "";
 
-  const prompt = `Voici les étapes d'une recette de cuisine, numérotées :
+  const prompt = `${titleLine}Voici les étapes d'une recette de cuisine, numérotées :
 ${stepsList}
 
 Équipements disponibles (utilise uniquement ces ids) :
 ${equipmentList}
 
 Pour CHAQUE étape (dans l'ordre, une entrée par étape), décide si elle doit être découpée ou traitée comme une seule action.
+
+Si plusieurs équipements de la liste sont des variantes du même type d'appareil (ex: "cookeo" et "cookeo_mini"), utilise le titre de la recette et le texte des étapes pour choisir la bonne variante — ne mets pas systématiquement la même par défaut.
 
 ${EQUIPMENT_RESERVATION_INSTRUCTIONS}
 Comme tu vois toutes les étapes de la recette : si une étape antérieure lance une cuisson longue dans un appareil (cuisson sous pression, four...) et qu'aucune étape intermédiaire n'indique explicitement que cet appareil est libéré (retiré, ouvert, sorti...), considère qu'il reste occupé pour toutes les étapes intermédiaires — même celles qui utilisent un autre équipement en parallèle (ex: préparer un accompagnement à la poêle pendant qu'un plat cuit au Cookeo) — et inclus-le dans leur equipment_ids.

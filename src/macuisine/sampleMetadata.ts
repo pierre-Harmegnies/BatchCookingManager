@@ -9,7 +9,8 @@ import type { Equipment } from "../types.js";
  */
 export const equipment: Equipment[] = [
   { id: "airfryer", name: "Airfryer", capacity: 1 },
-  { id: "cookeo", name: "Cookeo", capacity: 1 },
+  { id: "cookeo", name: "Cookeo Infinity", capacity: 1 },
+  { id: "cookeo_mini", name: "Cookeo Mini", capacity: 1 },
   { id: "feu", name: "Feux de cuisson", capacity: 2 },
   { id: "cuisinier", name: "Cuisinier (vous)", capacity: 1 },
 ];
