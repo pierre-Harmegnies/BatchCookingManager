@@ -14,9 +14,14 @@ Bug réel corrigé (2026-09-28) : un appareil encore en cours d'utilisation par 
 
 Le prompt (`src/ai/suggestStepMetadata.ts`) instruit maintenant le modèle à détecter ces réservations implicites. La **suggestion groupée** ("toute la recette") est plus fiable ici que la suggestion par étape, car elle voit l'ensemble des étapes et peut repérer qu'une cuisson lancée plus tôt n'a pas encore été explicitement libérée (retirée, ouverte, sortie...) — la suggestion par étape, elle, ne peut se fier qu'au texte de l'étape elle-même.
 
-## Suggestion IA du découpage en sous-étapes
+## Suggestion IA : uniquement groupée (par recette)
 
-La suggestion IA (individuelle et groupée) ne se limite plus à durée+équipement : pour chaque étape, l'IA décide si elle regroupe plusieurs actions distinctes (ex: "poêler les haricots ET cuire les pâtes") et propose directement la décomposition logique — description, durée, équipement et "en parallèle de la précédente" par sous-étape (`src/ai/suggestStepMetadata.ts`, type `StepSuggestion`). L'UI bascule alors automatiquement la carte en mode divisé, sous-étapes pré-remplies. Toujours une proposition, jamais enregistrée automatiquement.
+Il n'y a plus de suggestion IA par étape isolée — seulement `POST /api/recipes/:slug/suggest-all`, un appel qui voit **toutes** les étapes d'une recette d'un coup. C'est nécessaire pour la fiabilité (repérer qu'un équipement reste réservé par une cuisson lancée dans une étape précédente, voir section ci-dessous) et cohérent avec la logique de coût déjà en place.
+
+- Page `/recettes` : bouton "Suggestion IA pour toute la recette".
+- Page `/` (écran de complétion) : bouton "Suggestion IA pour les étapes manquantes" — regroupe les étapes manquantes par recette et appelle `suggest-all` une fois par recette concernée (jamais un appel mélangeant plusieurs recettes, pour garder le contexte complet).
+
+La suggestion ne se limite pas à durée+équipement : pour chaque étape, l'IA décide si elle regroupe plusieurs actions distinctes (ex: "poêler les haricots ET cuire les pâtes") et propose directement la décomposition logique — description, durée, équipement et "en parallèle de la précédente" par sous-étape (`src/ai/suggestStepMetadata.ts`, type `StepSuggestion`). L'UI bascule alors automatiquement la carte concernée en mode divisé, sous-étapes pré-remplies. Toujours une proposition, jamais enregistrée automatiquement.
 
 ## Raffinement des étapes (sous-étapes)
 
