@@ -50,6 +50,8 @@ Bouton "Sauvegarder cette session" sous le planning généré (page `/`) : `POST
 
 Page `/historique` : liste des sessions (nom, date, recettes, durée totale), triées de la plus récente à la plus ancienne. "Voir" affiche le planning complet (même rendu que la page de planification, factorisé dans `renderScheduleTable`, `public/shared.js`), avec téléchargement PDF direct depuis la session sauvegardée (`GET /api/sessions/:id/pdf`, pas de recalcul) et suppression (`DELETE /api/sessions/:id`).
 
+**Modifier le planning d'une session** : bouton "Modifier le planning" → formulaire éditable (ajout/modif/suppression d'étapes, y compris des étapes libres sans lien avec une recette). `PUT /api/sessions/:id/schedule` remplace le planning stocké, retrie par heure de début et recalcule le temps total côté serveur. Édition strictement locale à la session — ne touche ni `step_metadata` ni MaCuisine, donc aucune influence sur les prochaines sessions générées (vérifié : régénérer un planning frais pour les mêmes recettes ne contient aucune trace des modifications).
+
 ## Menus MaCuisine
 
 `GET /api/menus` (section "1. Charger un menu de la semaine" dans l'UI) liste les menus déjà planifiés dans MaCuisine et en extrait les recettes distinctes (`extractRecipesFromMenu` dans `src/macuisine/client.ts`, tous jours/repas confondus). Cliquer "Charger" présélectionne ces recettes dans le sélecteur libre ci-dessous (max 4 ; au-delà, seules les 4 premières sont cochées, à ajuster manuellement) — la sélection libre reste disponible en complément, elle n'est pas remplacée.
