@@ -39,6 +39,8 @@ type RawSuggestion = RawSimple | RawSplit;
  */
 const MODEL = "claude-haiku-4-5-20251001";
 
+const EQUIPMENT_RESERVATION_INSTRUCTIONS = `Attention à l'équipement "en réserve" : si le texte indique qu'un appareil est encore en cours d'utilisation pendant cette étape alors que l'action décrite ne le touche pas directement (ex: "pendant la cuisson du Cookeo", "four toujours allumé", "le riz continue de cuire"...), inclus quand même cet appareil dans equipment_ids (et dans equipment_ids de chaque sous-étape concernée si tu découpes). Il reste physiquement occupé et indisponible pour une autre recette tant qu'il n'a pas été explicitement libéré (ex: "retirer du Cookeo", "sortir du four", "ouvrir la cocotte").`;
+
 const SPLIT_INSTRUCTIONS = `Si cette étape ne décrit qu'UNE seule action cohérente, réponds au format simple.
 Si elle regroupe PLUSIEURS actions distinctes qui gagneraient à être planifiées séparément (ex: deux préparations indépendantes dans la même phrase, une action passive suivie d'une active, une garniture préparable pendant une cuisson...), découpe-la en plusieurs sous-étapes logiques et ordonnées. Ne découpe pas artificiellement une action déjà unitaire.
 
@@ -107,6 +109,8 @@ ${description}
 Équipements disponibles (utilise uniquement ces ids, celui qui correspond le mieux si besoin, ou aucun) :
 ${equipmentList}
 
+${EQUIPMENT_RESERVATION_INSTRUCTIONS}
+
 ${SPLIT_INSTRUCTIONS}
 
 Retourne UNIQUEMENT un JSON, sans markdown ni explication, selon l'un de ces deux formats :
@@ -155,6 +159,9 @@ ${stepsList}
 ${equipmentList}
 
 Pour CHAQUE étape (dans l'ordre, une entrée par étape), décide si elle doit être découpée ou traitée comme une seule action.
+
+${EQUIPMENT_RESERVATION_INSTRUCTIONS}
+Comme tu vois toutes les étapes de la recette : si une étape antérieure lance une cuisson longue dans un appareil (cuisson sous pression, four...) et qu'aucune étape intermédiaire n'indique explicitement que cet appareil est libéré (retiré, ouvert, sorti...), considère qu'il reste occupé pour toutes les étapes intermédiaires — même celles qui utilisent un autre équipement en parallèle (ex: préparer un accompagnement à la poêle pendant qu'un plat cuit au Cookeo) — et inclus-le dans leur equipment_ids.
 
 ${SPLIT_INSTRUCTIONS}
 
