@@ -122,18 +122,29 @@ editBtn.addEventListener("click", async () => {
 
 cancelEditBtn.addEventListener("click", exitEditMode);
 
-addStepBtn.addEventListener("click", () => {
-  const lastEnd = editRows.reduce((max, r) => Math.max(max, r.getData().endMinutes), 0);
+function insertRowAfter(afterRow) {
+  const startMinutes = afterRow ? afterRow.getData().endMinutes : editRows.reduce((max, r) => Math.max(max, r.getData().endMinutes), 0);
   const row = createEditStepRow({
     recipeTitle: "Personnalisé",
     description: "",
-    startMinutes: lastEnd,
-    endMinutes: lastEnd + 5,
+    startMinutes,
+    endMinutes: startMinutes + 5,
     equipmentIds: [],
   });
-  editRows.push(row);
-  editListEl.append(row.element);
-});
+
+  if (afterRow) {
+    const index = editRows.indexOf(afterRow);
+    editRows.splice(index + 1, 0, row);
+    afterRow.element.after(row.element);
+  } else {
+    editRows.push(row);
+    editListEl.append(row.element);
+  }
+  row.element.scrollIntoView({ behavior: "smooth", block: "center" });
+  row.element.querySelector('input[data-role="description"]').focus();
+}
+
+addStepBtn.addEventListener("click", () => insertRowAfter(null));
 
 saveEditBtn.addEventListener("click", async () => {
   const steps = editRows.map((r) => r.getData());
@@ -192,6 +203,13 @@ function createEditStepRow(step) {
   descInput.placeholder = "Description de l'étape";
   descInput.value = step.description;
 
+  const insertAfterBtn = document.createElement("button");
+  insertAfterBtn.type = "button";
+  insertAfterBtn.className = "secondary";
+  insertAfterBtn.title = "Insérer une nouvelle étape juste après celle-ci";
+  insertAfterBtn.textContent = "+ Insérer après";
+  insertAfterBtn.addEventListener("click", () => insertRowAfter(rowData));
+
   const removeBtn = document.createElement("button");
   removeBtn.type = "button";
   removeBtn.className = "secondary";
@@ -203,7 +221,7 @@ function createEditStepRow(step) {
 
   const top = document.createElement("div");
   top.className = "edit-step-row-top";
-  top.append(startInput, endInput, recipeInput, descInput, removeBtn);
+  top.append(startInput, endInput, recipeInput, descInput, insertAfterBtn, removeBtn);
 
   const eqWrap = document.createElement("div");
   eqWrap.className = "equipment-options";
