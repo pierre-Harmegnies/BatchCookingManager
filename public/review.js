@@ -84,11 +84,21 @@ suggestAllBtn.addEventListener("click", async () => {
       throw new Error(err.error);
     }
     const { suggestions } = await res.json();
+    let splitCount = 0;
     for (const card of currentReviewCards) {
       const suggestion = suggestions[card.stepId];
-      if (suggestion) card.applySuggestion(suggestion, "Suggestion IA (groupée) appliquée — vérifie et enregistre.");
+      if (!suggestion) continue;
+      const isSplit = suggestion.split && suggestion.subSteps?.length > 1;
+      if (isSplit) splitCount++;
+      card.applySuggestion(
+        suggestion,
+        isSplit
+          ? `Suggestion IA (groupée) : étape divisée en ${suggestion.subSteps.length} sous-étapes — vérifie et enregistre.`
+          : "Suggestion IA (groupée) appliquée — vérifie et enregistre.",
+      );
     }
-    suggestAllStatusEl.textContent = `Suggestions appliquées pour ${Object.keys(suggestions).length} étape(s) — vérifie chaque étape avant d'enregistrer.`;
+    const splitNote = splitCount > 0 ? ` (dont ${splitCount} divisée(s) en sous-étapes)` : "";
+    suggestAllStatusEl.textContent = `Suggestions appliquées pour ${Object.keys(suggestions).length} étape(s)${splitNote} — vérifie chaque étape avant d'enregistrer.`;
   } catch (err) {
     suggestAllStatusEl.textContent = `Échec de la suggestion IA groupée : ${err.message}`;
   } finally {

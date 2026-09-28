@@ -231,6 +231,7 @@ export function createStepEditorCard(step, existingMetadata, equipmentList) {
 
     const rowData = {
       id: prefill?.id ?? `sub-${++subStepCounter}`,
+      rowEl: row,
       getData: () => ({
         id: rowData.id,
         description: descInput.value.trim(),
@@ -287,10 +288,24 @@ export function createStepEditorCard(step, existingMetadata, equipmentList) {
     status.textContent = "Configuration existante — modifie et enregistre si besoin.";
   }
 
+  function clearSubSteps() {
+    for (const r of subStepRows) r.rowEl.remove();
+    subStepRows.length = 0;
+  }
+
   function applySuggestion(suggestion, statusText) {
-    durationInput.value = suggestion.durationMinutes;
+    if (suggestion.split && suggestion.subSteps?.length > 1) {
+      enterSplitMode();
+      clearSubSteps();
+      for (const sub of suggestion.subSteps) addSubStepRow(sub);
+      status.textContent = statusText ?? `Suggestion IA appliquée — étape divisée en ${suggestion.subSteps.length} sous-étapes, vérifie et enregistre.`;
+      return;
+    }
+
+    const simple = suggestion.split ? suggestion.subSteps[0] : suggestion;
+    durationInput.value = simple.durationMinutes;
     for (const id of Object.keys(checkboxes)) {
-      checkboxes[id].checked = suggestion.equipmentIds.includes(id);
+      checkboxes[id].checked = simple.equipmentIds.includes(id);
     }
     status.textContent = statusText ?? "Suggestion IA appliquée — vérifie et enregistre.";
   }
