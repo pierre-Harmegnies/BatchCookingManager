@@ -54,15 +54,31 @@ export function setupThemeToggle() {
   apply();
 }
 
-// Palette partagée avec l'export PDF (planningPdf.ts) : chaque recette/équipement
-// se voit attribuer une couleur stable (par hash du nom), pour repérer d'un
-// coup d'œil qui fait quoi.
+// Palette partagée avec l'export PDF (planningPdf.ts). Pour les RECETTES, la
+// couleur est assignée par position (1ère recette rencontrée -> 1ère couleur,
+// etc.) plutôt que par hash du nom : avec seulement 5 teintes et peu de
+// recettes par session (max 4), un hash indépendant par nom produit des
+// collisions fréquentes (deux recettes qui tombent sur la même couleur,
+// illisible). L'assignation par position garantit des couleurs distinctes
+// tant qu'il y a au plus 5 recettes — toujours le cas ici.
 const COLOR_VARS = ["--h-sky", "--h-amber", "--h-rose", "--h-teal", "--h-violet"];
 
+/** Couleur stable par hash — utilisée pour l'équipement (pas de contrainte de distinction mutuelle). */
 export function colorVarForKey(key) {
   let hash = 0;
   for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
   return COLOR_VARS[hash % COLOR_VARS.length];
+}
+
+/** Attribue une couleur distincte à chaque recette, par ordre de première apparition dans le planning. */
+function assignRecipeColors(schedule) {
+  const colorByRecipe = new Map();
+  for (const step of schedule.steps) {
+    if (!colorByRecipe.has(step.recipeTitle)) {
+      colorByRecipe.set(step.recipeTitle, COLOR_VARS[colorByRecipe.size % COLOR_VARS.length]);
+    }
+  }
+  return colorByRecipe;
 }
 
 export function formatMinutes(minutes) {
@@ -74,12 +90,13 @@ export function formatMinutes(minutes) {
 /** Rend le tableau chronologique d'un planning (utilisé par planning.js et historique.js). */
 export function renderScheduleTable(schedule, tbodyEl, makespanEl) {
   tbodyEl.innerHTML = "";
+  const recipeColors = assignRecipeColors(schedule);
   for (const step of schedule.steps) {
     const tr = document.createElement("tr");
 
     const recipeTd = document.createElement("td");
     recipeTd.className = "recipe-name";
-    recipeTd.style.setProperty("--recipe-color", `var(${colorVarForKey(step.recipeTitle)})`);
+    recipeTd.style.setProperty("--recipe-color", `var(${recipeColors.get(step.recipeTitle)})`);
     recipeTd.textContent = step.recipeTitle;
 
     const equipmentTd = document.createElement("td");
