@@ -8,6 +8,10 @@ Voir le cadrage complet dans `/home/developer/.claude/plans/dans-home-developer-
 
 `src/scheduler.ts` implémente l'heuristique d'ordonnancement (Serial Schedule Generation Scheme), avec un équipement virtuel `cuisinier` (capacité 1) représentant le fait qu'une seule personne cuisine à la fois.
 
+## Suggestion IA du découpage en sous-étapes
+
+La suggestion IA (individuelle et groupée) ne se limite plus à durée+équipement : pour chaque étape, l'IA décide si elle regroupe plusieurs actions distinctes (ex: "poêler les haricots ET cuire les pâtes") et propose directement la décomposition logique — description, durée, équipement et "en parallèle de la précédente" par sous-étape (`src/ai/suggestStepMetadata.ts`, type `StepSuggestion`). L'UI bascule alors automatiquement la carte en mode divisé, sous-étapes pré-remplies. Toujours une proposition, jamais enregistrée automatiquement.
+
 ## Raffinement des étapes (sous-étapes)
 
 Une étape MaCuisine trop groupée (ex: "poêler les haricots ET cuire les pâtes") peut être divisée en plusieurs sous-étapes propres à BatchCookingManager, **sans modifier la recette originale dans MaCuisine**. Dans l'écran de complétion, bouton "Diviser en sous-étapes" → liste dynamique de sous-étapes (description, durée, équipement, case "en parallèle de la précédente").
