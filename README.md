@@ -8,6 +8,12 @@ Voir le cadrage complet dans `/home/developer/.claude/plans/dans-home-developer-
 
 `src/scheduler.ts` implémente l'heuristique d'ordonnancement (Serial Schedule Generation Scheme), avec un équipement virtuel `cuisinier` (capacité 1) représentant le fait qu'une seule personne cuisine à la fois.
 
+## Réservation d'équipement en arrière-plan
+
+Bug réel corrigé (2026-09-28) : un appareil encore en cours d'utilisation par une étape précédente de la même recette (ex: "pendant la cuisson du Cookeo, faire tomber les épinards...") doit rester réservé même si l'action décrite ne le touche pas directement — sinon le planificateur croit l'appareil libre et y place une étape d'une **autre** recette en même temps. Ce n'était pas un bug de l'algorithme d'ordonnancement (`scheduler.ts` respecte correctement tout ce qui lui est déclaré) mais un angle mort de la suggestion IA, qui ne pensait pas à inclure l'appareil "en réserve".
+
+Le prompt (`src/ai/suggestStepMetadata.ts`) instruit maintenant le modèle à détecter ces réservations implicites. La **suggestion groupée** ("toute la recette") est plus fiable ici que la suggestion par étape, car elle voit l'ensemble des étapes et peut repérer qu'une cuisson lancée plus tôt n'a pas encore été explicitement libérée (retirée, ouverte, sortie...) — la suggestion par étape, elle, ne peut se fier qu'au texte de l'étape elle-même.
+
 ## Suggestion IA du découpage en sous-étapes
 
 La suggestion IA (individuelle et groupée) ne se limite plus à durée+équipement : pour chaque étape, l'IA décide si elle regroupe plusieurs actions distinctes (ex: "poêler les haricots ET cuire les pâtes") et propose directement la décomposition logique — description, durée, équipement et "en parallèle de la précédente" par sous-étape (`src/ai/suggestStepMetadata.ts`, type `StepSuggestion`). L'UI bascule alors automatiquement la carte en mode divisé, sous-étapes pré-remplies. Toujours une proposition, jamais enregistrée automatiquement.
